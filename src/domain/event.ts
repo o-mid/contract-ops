@@ -18,3 +18,8 @@ export type EventFilters = {
   query: string;
   status: EventStatus | "all";
 };
+
+export type EventsState =
+  | { kind: "loading" }
+  | { kind: "ready"; page: EventPage; lastUpdated: Date }
+  | { kind: "error"; message: string };

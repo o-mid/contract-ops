@@ -2,7 +2,9 @@ openapi: 3.1.0
 info:
   title: Contract Ops API
   version: 0.1.0
-  description: A deterministic event feed for the Contract Ops frontend.
+  description: >
+    A deterministic event feed for the Contract Ops frontend. The process starts
+    with four fixtures and appends up to four more live demo events over SSE.
 servers:
   - url: http://localhost:8080
 paths:
@@ -42,6 +44,39 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EventPage"
+        "400":
+          description: Invalid status filter.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/events/stream:
+    get:
+      summary: Stream filtered service events
+      description: >
+        Server-Sent Events stream. Sends an EventPage snapshot on connect and
+        again whenever the in-memory store changes. Uses the same q and status
+        filters as GET /v1/events.
+      parameters:
+        - name: q
+          in: query
+          description: Case-insensitive match against event ID, source, type, or correlation ID.
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [processed, pending, failed, all]
+      responses:
+        "200":
+          description: SSE stream of EventPage JSON payloads.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                example: |
+                  data: {"events":[],"total":0}
         "400":
           description: Invalid status filter.
           content:

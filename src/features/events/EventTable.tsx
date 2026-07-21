@@ -1,9 +1,4 @@
-import type { ServiceEvent } from "../../domain/event";
-
-type EventsState =
-  | { kind: "loading" }
-  | { kind: "ready"; page: { events: ServiceEvent[]; total: number } }
-  | { kind: "error"; message: string };
+import type { EventsState } from "../../domain/event";
 
 type EventTableProps = {
   state: EventsState;

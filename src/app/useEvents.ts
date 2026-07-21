@@ -1,11 +1,8 @@
 import { useEffect, useState } from "react";
-import { getEvents } from "../api/events";
-import type { EventFilters, EventPage } from "../domain/event";
+import { eventsStreamUrl, parseEventPage } from "../api/events";
+import type { EventFilters, EventsState } from "../domain/event";
 
-type EventsState =
-  | { kind: "loading" }
-  | { kind: "ready"; page: EventPage }
-  | { kind: "error"; message: string };
+export type { EventsState };
 
 export function useEvents(filters: EventFilters) {
   const [state, setState] = useState<EventsState>({ kind: "loading" });
@@ -13,24 +10,44 @@ export function useEvents(filters: EventFilters) {
   const { query, status } = filters;
 
   useEffect(() => {
-    const controller = new AbortController();
+    let active = true;
     setState({ kind: "loading" });
 
-    getEvents({ query, status }, controller.signal)
-      .then((page) => {
-        if (!controller.signal.aborted) {
-          setState({ kind: "ready", page });
-        }
-      })
-      .catch((error: unknown) => {
-        if (!controller.signal.aborted) {
-          const message =
-            error instanceof Error ? error.message : "Unable to load service events";
-          setState({ kind: "error", message });
-        }
-      });
+    const source = new EventSource(eventsStreamUrl({ query, status }));
 
-    return () => controller.abort();
+    source.onmessage = (message) => {
+      if (!active) {
+        return;
+      }
+
+      try {
+        const page = parseEventPage(JSON.parse(message.data) as unknown);
+        setState({ kind: "ready", page, lastUpdated: new Date() });
+      } catch (error: unknown) {
+        const detail =
+          error instanceof Error ? error.message : "Invalid events stream payload";
+        active = false;
+        setState({ kind: "error", message: detail });
+        source.close();
+      }
+    };
+
+    source.onerror = () => {
+      if (!active) {
+        return;
+      }
+      active = false;
+      setState({
+        kind: "error",
+        message: "Unable to connect to the events stream"
+      });
+      source.close();
+    };
+
+    return () => {
+      active = false;
+      source.close();
+    };
   }, [query, status, retryToken]);
 
   return {

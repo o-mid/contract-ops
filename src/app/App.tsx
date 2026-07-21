@@ -6,6 +6,14 @@ import { useEvents } from "./useEvents";
 
 const initialFilters: EventFilters = { query: "", status: "all" };
 
+function formatLastUpdated(value: Date) {
+  return new Intl.DateTimeFormat("en-GB", {
+    dateStyle: "medium",
+    timeStyle: "medium",
+    timeZone: "UTC"
+  }).format(value);
+}
+
 export function App() {
   const [filters, setFilters] = useState(initialFilters);
   const deferredFilters = useDeferredValue(filters);
@@ -26,7 +34,8 @@ export function App() {
         <p className="eyebrow">Contract Ops</p>
         <h1>Event console</h1>
         <p className="page-summary">
-          Browse recent service events and inspect processing state.
+          Browse recent service events and inspect processing state. New demo events
+          appear live over a server-sent stream until eight events are available.
         </p>
       </header>
 
@@ -40,6 +49,11 @@ export function App() {
                 `${state.page.total} event${state.page.total === 1 ? "" : "s"} found`}
               {state.kind === "error" && "Events could not be loaded"}
             </p>
+            {state.kind === "ready" && (
+              <p className="last-updated">
+                Last updated {formatLastUpdated(state.lastUpdated)} UTC
+              </p>
+            )}
           </div>
         </div>
 

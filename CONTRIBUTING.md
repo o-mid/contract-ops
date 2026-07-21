@@ -1,14 +1,15 @@
 # Contributing
 
-Keep changes small enough to review in one sitting.
+This repository is a skills showcase. Keep changes small enough to review in one sitting, and keep the front-end / API contract easy to explain.
 
 ## Before opening a change
 
 1. Read `README.md` and `openapi.yaml`.
 2. Put API filtering and response-shape logic in `api/internal`.
-3. Keep UI components focused on rendering and interaction. Keep fetch behaviour in `src/api` or `src/app`.
+3. Keep UI components focused on rendering and interaction. Keep stream/fetch behaviour in `src/api` or `src/app`.
 4. Add or update a focused test for changed behaviour.
-5. Run the checks below.
+5. If UI behaviour changes, update screenshots under `docs/screenshots/` when practical.
+6. Run the checks below.
 
 ```bash
 npm run check

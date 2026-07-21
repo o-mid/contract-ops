@@ -68,8 +68,14 @@ h2 {
 }
 
 .page-summary,
-.result-summary {
+.result-summary,
+.last-updated {
   color: #475569;
+}
+
+.last-updated {
+  margin: 0.35rem 0 0;
+  font-size: 0.875rem;
 }
 
 .event-panel {

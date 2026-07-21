@@ -38,3 +38,37 @@ func Fixtures() []Event {
 		},
 	}
 }
+
+// PendingFixtures are appended by the live generator until MaxEvents is reached.
+func PendingFixtures() []Event {
+	return []Event{
+		{
+			ID:            "evt_01HV1B04",
+			Source:        "ledger-worker",
+			Type:          "balance.reconciled",
+			Status:        StatusProcessed,
+			CorrelationID: "crl_ledger_4c21",
+		},
+		{
+			ID:            "evt_01HV1B05",
+			Source:        "kyc-webhook",
+			Type:          "identity.review.requested",
+			Status:        StatusPending,
+			CorrelationID: "crl_kyc_91ef",
+		},
+		{
+			ID:            "evt_01HV1B06",
+			Source:        "fireblocks-webhook",
+			Type:          "transaction.broadcast",
+			Status:        StatusPending,
+			CorrelationID: "crl_tx_77b0",
+		},
+		{
+			ID:            "evt_01HV1B07",
+			Source:        "risk-engine",
+			Type:          "transfer.flagged",
+			Status:        StatusFailed,
+			CorrelationID: "crl_risk_2aad",
+		},
+	}
+}
