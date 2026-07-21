@@ -1,0 +1,91 @@
+openapi: 3.1.0
+info:
+  title: Contract Ops API
+  version: 0.1.0
+  description: A deterministic event feed for the Contract Ops frontend.
+servers:
+  - url: http://localhost:8080
+paths:
+  /healthz:
+    get:
+      summary: Check API availability
+      responses:
+        "200":
+          description: API is available
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    example: ok
+  /v1/events:
+    get:
+      summary: List service events
+      parameters:
+        - name: q
+          in: query
+          description: Case-insensitive match against event ID, source, type, or correlation ID.
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [processed, pending, failed, all]
+      responses:
+        "200":
+          description: Matching events ordered newest first.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventPage"
+        "400":
+          description: Invalid status filter.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  schemas:
+    Event:
+      type: object
+      required: [id, source, type, status, occurredAt, correlationId]
+      properties:
+        id:
+          type: string
+          example: evt_01HV1B03
+        source:
+          type: string
+          example: onramp-webhook
+        type:
+          type: string
+          example: purchase.failed
+        status:
+          type: string
+          enum: [processed, pending, failed]
+        occurredAt:
+          type: string
+          format: date-time
+        correlationId:
+          type: string
+          example: crl_onramp_62de
+    EventPage:
+      type: object
+      required: [events, total]
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"
+        total:
+          type: integer
+          minimum: 0
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
