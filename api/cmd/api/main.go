@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,13 +13,18 @@ import (
 	"github.com/o-mid/contract-ops/api/internal/events"
 	"github.com/o-mid/contract-ops/api/internal/httpapi"
 	"github.com/o-mid/contract-ops/api/internal/platform/config"
+	applog "github.com/o-mid/contract-ops/api/internal/platform/log"
 )
 
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("config: %v", err)
+		slog.New(slog.NewJSONHandler(os.Stderr, nil)).Error("invalid config", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
+
+	logger := applog.New(cfg.LogLevel)
+	slog.SetDefault(logger)
 
 	store := events.NewStore(events.Fixtures())
 	server := &http.Server{
@@ -36,18 +41,20 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("contract-ops API listening on :%s", cfg.Port)
+		logger.Info("listening", slog.String("addr", ":"+cfg.Port))
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("listen: %v", err)
+			logger.Error("listen", slog.String("error", err.Error()))
+			os.Exit(1)
 		}
 	}()
 
 	<-ctx.Done()
-	log.Printf("contract-ops API shutting down")
+	logger.Info("shutting down")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 	defer cancel()
 	if err := server.Shutdown(shutdownCtx); err != nil {
-		log.Fatalf("shutdown: %v", err)
+		logger.Error("shutdown", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 }
