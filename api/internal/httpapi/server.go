@@ -3,26 +3,70 @@ package httpapi
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
+	"time"
+
+	"github.com/go-chi/chi/v5"
 
 	"github.com/o-mid/contract-ops/api/internal/events"
+	"github.com/o-mid/contract-ops/api/internal/platform/httpx"
 )
+
+const (
+	defaultRequestTimeout = 30 * time.Second
+	defaultBodyLimitBytes = 1 << 20
+)
+
+// Options configures middleware around the existing event routes.
+type Options struct {
+	Logger         *slog.Logger
+	CORSOrigin     string
+	RequestTimeout time.Duration
+	BodyLimitBytes int64
+}
+
+func (o Options) withDefaults() Options {
+	if o.Logger == nil {
+		o.Logger = slog.Default()
+	}
+	if o.CORSOrigin == "" {
+		o.CORSOrigin = "http://localhost:5173"
+	}
+	if o.RequestTimeout <= 0 {
+		o.RequestTimeout = defaultRequestTimeout
+	}
+	if o.BodyLimitBytes <= 0 {
+		o.BodyLimitBytes = defaultBodyLimitBytes
+	}
+	return o
+}
 
 type Server struct {
 	store *events.Store
+	opts  Options
 }
 
-func NewServer(store *events.Store) Server {
-	return Server{store: store}
+func NewServer(store *events.Store, opts Options) Server {
+	return Server{store: store, opts: opts.withDefaults()}
 }
 
 func (s Server) Handler() http.Handler {
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", s.health)
-	mux.HandleFunc("GET /v1/events", s.listEvents)
-	mux.HandleFunc("GET /v1/events/stream", s.streamEvents)
-
-	return withCORS(mux)
+	router := chi.NewRouter()
+	router.Use(httpx.RequestID)
+	router.Use(httpx.CORS(s.opts.CORSOrigin))
+	router.Use(httpx.AccessLog(s.opts.Logger))
+	router.Use(httpx.Recover(s.opts.Logger))
+	router.Use(httpx.BodyLimit(s.opts.BodyLimitBytes))
+	router.Use(httpx.Timeout(s.opts.RequestTimeout, func(request *http.Request) bool {
+		// A request timeout would close the stream and the UI would treat
+		// that as a failed connection. The client closes it instead.
+		return request.URL.Path == "/v1/events/stream"
+	}))
+	router.Get("/healthz", s.health)
+	router.Get("/v1/events", s.listEvents)
+	router.Get("/v1/events/stream", s.streamEvents)
+	return router
 }
 
 func (s Server) health(writer http.ResponseWriter, _ *http.Request) {
@@ -106,14 +150,6 @@ func validStatus(status string) bool {
 	default:
 		return false
 	}
-}
-
-func withCORS(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
-		writer.Header().Set("Vary", "Origin")
-		next.ServeHTTP(writer, request)
-	})
 }
 
 func writeJSON(writer http.ResponseWriter, status int, body any) {

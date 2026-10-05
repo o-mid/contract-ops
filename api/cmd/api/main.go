@@ -28,8 +28,11 @@ func main() {
 
 	store := events.NewStore(events.Fixtures())
 	server := &http.Server{
-		Addr:              ":" + cfg.Port,
-		Handler:           httpapi.NewServer(store).Handler(),
+		Addr: ":" + cfg.Port,
+		Handler: httpapi.NewServer(store, httpapi.Options{
+			Logger:     logger,
+			CORSOrigin: cfg.CORSOrigin,
+		}).Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

@@ -3,6 +3,8 @@ package httpapi
 import (
 	"bufio"
 	"context"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -12,8 +14,14 @@ import (
 	"github.com/o-mid/contract-ops/api/internal/events"
 )
 
+func newTestServer(store *events.Store) Server {
+	return NewServer(store, Options{
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+	})
+}
+
 func TestListEventsReturnsFilteredEvents(t *testing.T) {
-	server := NewServer(events.NewStore(events.Fixtures()))
+	server := newTestServer(events.NewStore(events.Fixtures()))
 	request := httptest.NewRequest(http.MethodGet, "/v1/events?status=failed", nil)
 	response := httptest.NewRecorder()
 
@@ -30,7 +38,7 @@ func TestListEventsReturnsFilteredEvents(t *testing.T) {
 }
 
 func TestListEventsRejectsUnknownStatus(t *testing.T) {
-	server := NewServer(events.NewStore(events.Fixtures()))
+	server := newTestServer(events.NewStore(events.Fixtures()))
 	request := httptest.NewRequest(http.MethodGet, "/v1/events?status=unknown", nil)
 	response := httptest.NewRecorder()
 
@@ -42,7 +50,7 @@ func TestListEventsRejectsUnknownStatus(t *testing.T) {
 }
 
 func TestStreamEventsRejectsUnknownStatus(t *testing.T) {
-	server := NewServer(events.NewStore(events.Fixtures()))
+	server := newTestServer(events.NewStore(events.Fixtures()))
 	request := httptest.NewRequest(http.MethodGet, "/v1/events/stream?status=unknown", nil)
 	response := httptest.NewRecorder()
 
@@ -55,7 +63,7 @@ func TestStreamEventsRejectsUnknownStatus(t *testing.T) {
 
 func TestStreamEventsSendsSnapshotAndUpdate(t *testing.T) {
 	store := events.NewStore(events.Fixtures())
-	server := NewServer(store)
+	server := newTestServer(store)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
