@@ -12,17 +12,18 @@ import (
 
 	"github.com/o-mid/contract-ops/api/internal/events"
 	"github.com/o-mid/contract-ops/api/internal/httpapi"
+	"github.com/o-mid/contract-ops/api/internal/platform/config"
 )
 
 func main() {
-	address := os.Getenv("PORT")
-	if address == "" {
-		address = "8080"
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("config: %v", err)
 	}
 
 	store := events.NewStore(events.Fixtures())
 	server := &http.Server{
-		Addr:              ":" + address,
+		Addr:              ":" + cfg.Port,
 		Handler:           httpapi.NewServer(store).Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
@@ -30,10 +31,12 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	go events.RunGenerator(ctx, store, 5*time.Second)
+	if cfg.DemoGenerator {
+		go events.RunGenerator(ctx, store, 5*time.Second)
+	}
 
 	go func() {
-		log.Printf("contract-ops API listening on :%s", address)
+		log.Printf("contract-ops API listening on :%s", cfg.Port)
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("listen: %v", err)
 		}
@@ -42,7 +45,7 @@ func main() {
 	<-ctx.Done()
 	log.Printf("contract-ops API shutting down")
 
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 	defer cancel()
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		log.Fatalf("shutdown: %v", err)
