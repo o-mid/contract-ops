@@ -15,7 +15,7 @@ Contract Ops is a portfolio slice of the kind of work web teams do when a React/
 
 `internal/httpapi` owns HTTP parsing, status validation, CORS, JSON list responses, and the SSE stream.
 
-`cmd/server` only composes those pieces, starts the generator, and shuts down on signal.
+`cmd/api` only composes those pieces, starts the generator, and shuts down on signal.
 
 Frontend:
 

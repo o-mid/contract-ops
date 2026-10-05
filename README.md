@@ -47,7 +47,7 @@ src/
   features/         Event filter and table UI
   app/              Page composition and EventSource lifecycle
 api/
-  cmd/server/       Process entry point and graceful shutdown
+  cmd/api/          Process entry point and graceful shutdown
   internal/events/  Model, fixtures, live generator, filtering, pub/sub
   internal/httpapi/ HTTP routing, SSE, CORS, JSON responses
 openapi.yaml        Public API contract
@@ -76,7 +76,7 @@ Requirements: Node.js 18+, npm, and Go 1.26+.
 
 ```bash
 npm install
-cd api && go test ./... && go run ./cmd/server
+cd api && go test ./... && go run ./cmd/api
 ```
 
 In another terminal:
