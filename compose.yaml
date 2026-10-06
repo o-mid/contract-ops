@@ -1,0 +1,35 @@
+# Postgres is part of the local stack. The API does not open a connection yet.
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-contract_ops}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-contract_ops}
+      POSTGRES_DB: ${POSTGRES_DB:-contract_ops}
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: ./api
+    environment:
+      PORT: "8080"
+      LOG_LEVEL: info
+      CORS_ORIGIN: http://localhost:5173
+      SHUTDOWN_TIMEOUT: 5s
+      DEMO_GENERATOR: "true"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

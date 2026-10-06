@@ -1,0 +1,19 @@
+# Small set on purpose: these catch unused code and real mistakes
+# without turning review into a style argument.
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+
+formatters:
+  enable:
+    - gofmt

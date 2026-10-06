@@ -12,8 +12,8 @@ This repository is a skills showcase. Keep changes small enough to review in one
 6. Run the checks below.
 
 ```bash
-npm run check
-cd api && go test ./...
+make test
+make lint
 ```
 
 ## Accessibility baseline
