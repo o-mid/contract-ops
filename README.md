@@ -25,6 +25,7 @@ Railway service roots and worker setup: [`docs/deploy-railway.md`](docs/deploy-r
 
 - **Activity** — live feed, search, status and connection filters, shareable URLs, load older pages via cursor.
 - **Connections** — list, create (`fakevendor` demo), verify, queue a 24-hour backfill (requires API key).
+- **Costs** — workspace billing rows from `GET /v1/costs` (requires API key).
 - **Settings** — API base URL and bearer key (stored in the browser only).
 
 Screenshots for filters, empty state, connections, and settings: [`docs/screenshots/`](docs/screenshots/). Regenerate with `make up`, `cd web && npm run dev`, then `npm run screenshots` (Playwright targets `http://localhost:3000/console` and seeds the local API key in browser storage).

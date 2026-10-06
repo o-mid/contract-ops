@@ -10,6 +10,7 @@ Use this when walking through the console. The API still owns credentials, seali
 6. Search for a value that matches nothing. The empty state is explicit, not a blank table.
 7. Open **Settings**, paste the local key from `.env.example` (`BOOTSTRAP_API_KEY`), save.
 8. Open **Connections** (two demo vendors are already seeded after a fresh volume). Optionally create another `fakevendor`, **Verify**, then **Backfill 24h**. Mention jobs are API-only until a sync list endpoint exists.
+9. Open **Costs** after a backfill completes (worker must be running). Rows are normalized billing lines persisted on sync commit.
 9. Stop the API. The stream error offers **Try again**.
 10. Optional depth: `openapi.yaml`, `api/internal/httpapi/server.go` (stream filters), `docs/architecture.md` (sync leases).
 11. Run `npm run check` and `cd api && go test ./...`.

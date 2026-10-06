@@ -4,6 +4,7 @@ import { useDeferredValue } from "react";
 import { AppShell } from "../components/layout/AppShell";
 import { ConnectionsPage } from "../pages/ConnectionsPage";
 import { EventsPage } from "../pages/EventsPage";
+import { CostsPage } from "../pages/CostsPage";
 import { SettingsPage } from "../pages/SettingsPage";
 import { useSettings } from "./useSettings";
 import { useEvents } from "./useEvents";
@@ -22,6 +23,7 @@ export function ConsoleApp() {
         <EventsPage filters={filters} onFiltersChange={setFilters} events={events} />
       )}
       {view === "connections" && <ConnectionsPage />}
+      {view === "costs" && <CostsPage />}
       {view === "settings" && <SettingsPage />}
     </AppShell>
   );

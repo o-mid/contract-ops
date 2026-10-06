@@ -3,14 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import type { EventFilters, EventStatus } from "../domain/event";
 
-export type AppView = "events" | "connections" | "settings";
+export type AppView = "events" | "connections" | "costs" | "settings";
 
 function readView(): AppView {
   if (typeof window === "undefined") {
     return "events";
   }
   const value = new URLSearchParams(window.location.search).get("view");
-  if (value === "connections" || value === "settings") {
+  if (value === "connections" || value === "costs" || value === "settings") {
     return value;
   }
   return "events";
@@ -53,6 +53,11 @@ function writeUrl(view: AppView, filters: EventFilters) {
 export function useUrlNavigation() {
   const [view, setViewState] = useState<AppView>(() => readView());
   const [filters, setFiltersState] = useState<EventFilters>(() => readEventFilters());
+
+  useEffect(() => {
+    setViewState(readView());
+    setFiltersState(readEventFilters());
+  }, []);
 
   useEffect(() => {
     writeUrl(view, filters);

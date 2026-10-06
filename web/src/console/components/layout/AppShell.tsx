@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { Activity, Cable, Home, Settings } from "lucide-react";
+import { Activity, Cable, Coins, Home, Settings } from "lucide-react";
 import type { AppView } from "../../app/useUrlFilters";
 import { cn } from "../../lib/cn";
 
@@ -16,6 +16,7 @@ type AppShellProps = {
 const nav: { id: AppView; label: string; icon: typeof Activity }[] = [
   { id: "events", label: "Activity", icon: Activity },
   { id: "connections", label: "Connections", icon: Cable },
+  { id: "costs", label: "Costs", icon: Coins },
   { id: "settings", label: "Settings", icon: Settings }
 ];
 
