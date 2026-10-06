@@ -2,9 +2,11 @@ package httpapi
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -43,11 +45,11 @@ func (o Options) withDefaults() Options {
 }
 
 type Server struct {
-	store *events.Store
+	store events.Feed
 	opts  Options
 }
 
-func NewServer(store *events.Store, opts Options) Server {
+func NewServer(store events.Feed, opts Options) Server {
 	return Server{store: store, opts: opts.withDefaults()}
 }
 
@@ -74,24 +76,22 @@ func (s Server) health(writer http.ResponseWriter, _ *http.Request) {
 }
 
 func (s Server) listEvents(writer http.ResponseWriter, request *http.Request) {
-	status := request.URL.Query().Get("status")
-	if !validStatus(status) {
-		writeJSON(writer, http.StatusBadRequest, map[string]string{
-			"error": "status must be processed, pending, failed, or all",
-		})
+	query, ok := eventQuery(writer, request)
+	if !ok {
 		return
 	}
 
-	page := s.store.List(request.URL.Query().Get("q"), status)
+	page, err := s.store.List(request.Context(), query)
+	if err != nil {
+		writeStoreError(writer, err)
+		return
+	}
 	writeJSON(writer, http.StatusOK, page)
 }
 
 func (s Server) streamEvents(writer http.ResponseWriter, request *http.Request) {
-	status := request.URL.Query().Get("status")
-	if !validStatus(status) {
-		writeJSON(writer, http.StatusBadRequest, map[string]string{
-			"error": "status must be processed, pending, failed, or all",
-		})
+	query, ok := eventQuery(writer, request)
+	if !ok {
 		return
 	}
 
@@ -101,18 +101,18 @@ func (s Server) streamEvents(writer http.ResponseWriter, request *http.Request) 
 		return
 	}
 
-	writer.Header().Set("Content-Type", "text/event-stream")
-	writer.Header().Set("Cache-Control", "no-cache")
-	writer.Header().Set("Connection", "keep-alive")
-	writer.WriteHeader(http.StatusOK)
-	flusher.Flush()
-
-	query := request.URL.Query().Get("q")
-	changes, cancel := s.store.Subscribe()
+	changes, cancel, err := s.store.Subscribe(request.Context())
+	if err != nil {
+		writeStoreError(writer, err)
+		return
+	}
 	defer cancel()
 
 	writePage := func() bool {
-		page := s.store.List(query, status)
+		page, err := s.store.List(request.Context(), query)
+		if err != nil {
+			return false
+		}
 		payload, err := json.Marshal(page)
 		if err != nil {
 			return false
@@ -123,6 +123,12 @@ func (s Server) streamEvents(writer http.ResponseWriter, request *http.Request) 
 		flusher.Flush()
 		return true
 	}
+
+	writer.Header().Set("Content-Type", "text/event-stream")
+	writer.Header().Set("Cache-Control", "no-cache")
+	writer.Header().Set("Connection", "keep-alive")
+	writer.WriteHeader(http.StatusOK)
+	flusher.Flush()
 
 	if !writePage() {
 		return
@@ -141,6 +147,57 @@ func (s Server) streamEvents(writer http.ResponseWriter, request *http.Request) 
 			}
 		}
 	}
+}
+
+func eventQuery(writer http.ResponseWriter, request *http.Request) (events.Query, bool) {
+	status := request.URL.Query().Get("status")
+	if !validStatus(status) {
+		writeJSON(writer, http.StatusBadRequest, map[string]string{
+			"error": "status must be processed, pending, failed, or all",
+		})
+		return events.Query{}, false
+	}
+
+	limit, err := parseLimit(request.URL.Query().Get("limit"))
+	if err != nil {
+		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return events.Query{}, false
+	}
+
+	connectionID := request.URL.Query().Get("connection_id")
+	if len(connectionID) > 128 {
+		writeJSON(writer, http.StatusBadRequest, map[string]string{
+			"error": "connection_id is too long",
+		})
+		return events.Query{}, false
+	}
+
+	return events.Query{
+		Text:         request.URL.Query().Get("q"),
+		Status:       status,
+		ConnectionID: connectionID,
+		Cursor:       request.URL.Query().Get("cursor"),
+		Limit:        limit,
+	}, true
+}
+
+func parseLimit(raw string) (int, error) {
+	if raw == "" {
+		return 0, nil
+	}
+	limit, err := strconv.Atoi(raw)
+	if err != nil || limit < 1 || limit > events.MaxLimit {
+		return 0, errors.New("limit must be from 1 to 100")
+	}
+	return limit, nil
+}
+
+func writeStoreError(writer http.ResponseWriter, err error) {
+	if errors.Is(err, events.ErrInvalidCursor) {
+		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "invalid cursor"})
+		return
+	}
+	writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 }
 
 func validStatus(status string) bool {

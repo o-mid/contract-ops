@@ -11,7 +11,7 @@ Contract Ops is a portfolio slice of the kind of work web teams do when a React/
 
 ## Boundaries
 
-`internal/events` owns fixture data, live append generation, sorting, filtering, and subscriber fan-out.
+`internal/events` owns fixture data, live append generation, sorting, filtering, and the in-memory feed used by tests. `internal/activity` stores the same feed in Postgres for the running API.
 
 `internal/httpapi` owns HTTP parsing, status validation, CORS, JSON list responses, and the SSE stream.
 

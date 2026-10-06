@@ -37,6 +37,23 @@ paths:
           schema:
             type: string
             enum: [processed, pending, failed, all]
+        - name: cursor
+          in: query
+          description: Opaque keyset from a previous page. Omit for the first page.
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Page size. Defaults to 50. Maximum 100.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - name: connection_id
+          in: query
+          description: Restrict the feed to one connection. Empty for the demo fixtures.
+          schema:
+            type: string
       responses:
         "200":
           description: Matching events ordered newest first.
@@ -55,8 +72,8 @@ paths:
       summary: Stream filtered service events
       description: >
         Server-Sent Events stream. Sends an EventPage snapshot on connect and
-        again whenever the in-memory store changes. Uses the same q and status
-        filters as GET /v1/events.
+        again whenever the stored feed changes. Uses the same filters as
+        GET /v1/events.
       parameters:
         - name: q
           in: query
@@ -68,6 +85,20 @@ paths:
           schema:
             type: string
             enum: [processed, pending, failed, all]
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - name: connection_id
+          in: query
+          schema:
+            type: string
       responses:
         "200":
           description: SSE stream of EventPage JSON payloads.
@@ -118,6 +149,10 @@ components:
         total:
           type: integer
           minimum: 0
+          description: Matching events, not just the current page.
+        nextCursor:
+          type: string
+          description: Present when another page is available.
     Error:
       type: object
       required: [error]

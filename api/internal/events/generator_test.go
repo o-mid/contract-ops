@@ -6,6 +6,15 @@ import (
 	"time"
 )
 
+func storeLen(t *testing.T, store *Store) int {
+	t.Helper()
+	count, err := store.Len(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return count
+}
+
 func TestRunGeneratorAppendsUntilMaxEvents(t *testing.T) {
 	store := NewStore(Fixtures())
 	ctx, cancel := context.WithCancel(context.Background())
@@ -23,11 +32,14 @@ func TestRunGeneratorAppendsUntilMaxEvents(t *testing.T) {
 		t.Fatal("generator did not finish")
 	}
 
-	if store.Len() != MaxEvents {
-		t.Fatalf("expected %d events, got %d", MaxEvents, store.Len())
+	if storeLen(t, store) != MaxEvents {
+		t.Fatalf("expected %d events, got %d", MaxEvents, storeLen(t, store))
 	}
 
-	page := store.List("", "")
+	page, err := store.List(context.Background(), Query{})
+	if err != nil {
+		t.Fatal(err)
+	}
 	ids := map[string]bool{}
 	for _, event := range page.Events {
 		ids[event.ID] = true
@@ -57,7 +69,7 @@ func TestRunGeneratorStopsOnCancel(t *testing.T) {
 		t.Fatal("generator did not stop after cancel")
 	}
 
-	if store.Len() != len(Fixtures()) {
-		t.Fatalf("expected no appends before first tick, got %d", store.Len())
+	if storeLen(t, store) != len(Fixtures()) {
+		t.Fatalf("expected no appends before first tick, got %d", storeLen(t, store))
 	}
 }

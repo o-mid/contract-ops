@@ -33,7 +33,11 @@ func main() {
 		logger.Error("open database", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			logger.Error("close database", slog.String("error", err.Error()))
+		}
+	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
