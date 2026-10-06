@@ -26,7 +26,7 @@ const shots = [
     path: "/console?view=connections",
     wait: 800,
     needsKey: true,
-    waitFor: "Workspace connections"
+    waitFor: "Acme Billing (demo)"
   },
   { name: "06-settings.png", path: "/console?view=settings", wait: 800, needsKey: false },
   {
@@ -59,7 +59,10 @@ for (const shot of shots) {
   await page.goto(`${baseUrl}${shot.path}`, { waitUntil: "domcontentloaded" });
   await page.waitForSelector("h1", { timeout: 30_000 });
   if (shot.waitFor) {
-    await page.getByText(shot.waitFor).waitFor({ timeout: 30_000 });
+    await page.getByRole("listitem").filter({ hasText: shot.waitFor }).waitFor({
+      timeout: 30_000
+    });
+    await page.waitForTimeout(400);
   }
   await page.waitForTimeout(shot.wait);
   if (shot.scroll) {

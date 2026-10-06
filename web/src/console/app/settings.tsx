@@ -7,15 +7,15 @@ import {
   API_KEY_STORAGE,
   defaultApiBaseUrl,
   readStorage,
+  resolveApiBaseUrl,
   writeStorage
 } from "./settingsStorage";
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [apiKey, setApiKeyState] = useState(() => readStorage(API_KEY_STORAGE));
-  const [apiBaseUrl, setApiBaseUrlState] = useState(() => {
-    const stored = readStorage(API_BASE_STORAGE);
-    return stored || defaultApiBaseUrl;
-  });
+  const [apiBaseUrl, setApiBaseUrlState] = useState(() =>
+    resolveApiBaseUrl(readStorage(API_BASE_STORAGE))
+  );
 
   useEffect(() => {
     const storedKey = readStorage(API_KEY_STORAGE);
@@ -23,9 +23,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     if (storedKey) {
       setApiKeyState(storedKey);
     }
-    if (storedBase) {
-      setApiBaseUrlState(storedBase);
-    }
+    setApiBaseUrlState(resolveApiBaseUrl(storedBase));
   }, []);
 
   const setApiKey = useCallback((key: string) => {

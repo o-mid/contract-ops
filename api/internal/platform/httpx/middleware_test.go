@@ -62,7 +62,7 @@ func TestRecoverWritesJSONAndKeepsGoing(t *testing.T) {
 }
 
 func TestCORSSetsConfiguredOrigin(t *testing.T) {
-	handler := CORS("http://localhost:5173")(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+	handler := CORS("http://localhost:3000")(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
 		writer.WriteHeader(http.StatusNoContent)
 	}))
 
@@ -70,11 +70,31 @@ func TestCORSSetsConfiguredOrigin(t *testing.T) {
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)
 
-	if got := response.Header().Get("Access-Control-Allow-Origin"); got != "http://localhost:5173" {
+	if got := response.Header().Get("Access-Control-Allow-Origin"); got != "http://localhost:3000" {
 		t.Fatalf("origin = %q", got)
 	}
 	if got := response.Header().Get("Vary"); got != "Origin" {
 		t.Fatalf("vary = %q", got)
+	}
+}
+
+func TestCORSAnswersPreflightWithoutNextHandler(t *testing.T) {
+	next := http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		t.Fatal("preflight should not reach the next handler")
+	})
+	handler := CORS("http://localhost:3000")(next)
+
+	request := httptest.NewRequest(http.MethodOptions, "/v1/connections", nil)
+	request.Header.Set("Origin", "http://localhost:3000")
+	request.Header.Set("Access-Control-Request-Method", "GET")
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusNoContent {
+		t.Fatalf("status = %d", response.Code)
+	}
+	if got := response.Header().Get("Access-Control-Allow-Methods"); got == "" {
+		t.Fatal("missing allow-methods")
 	}
 }
 

@@ -47,7 +47,7 @@ func (o Options) withDefaults() Options {
 		o.Logger = slog.Default()
 	}
 	if o.CORSOrigin == "" {
-		o.CORSOrigin = "http://localhost:5173"
+		o.CORSOrigin = "http://localhost:3000"
 	}
 	if o.RequestTimeout <= 0 {
 		o.RequestTimeout = defaultRequestTimeout

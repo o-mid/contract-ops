@@ -86,13 +86,20 @@ func Recover(logger *slog.Logger) func(http.Handler) http.Handler {
 	}
 }
 
-// CORS sets the single allowed browser origin. EventSource requests are
-// simple GETs, so this does not add a preflight handler.
+// CORS sets the single allowed browser origin and answers preflight OPTIONS
+// before auth middleware runs on mutating routes.
 func CORS(origin string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 			writer.Header().Set("Access-Control-Allow-Origin", origin)
 			writer.Header().Set("Vary", "Origin")
+			if request.Method == http.MethodOptions {
+				writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS")
+				writer.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, Idempotency-Key")
+				writer.Header().Set("Access-Control-Max-Age", "600")
+				writer.WriteHeader(http.StatusNoContent)
+				return
+			}
 			next.ServeHTTP(writer, request)
 		})
 	}
