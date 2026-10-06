@@ -21,11 +21,32 @@ jobs:
     defaults:
       run:
         working-directory: api
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: contract_ops
+          POSTGRES_PASSWORD: contract_ops
+          POSTGRES_DB: contract_ops
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U contract_ops -d contract_ops"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://contract_ops:contract_ops@localhost:5432/contract_ops?sslmode=disable
+      TEST_DATABASE_URL: postgres://contract_ops:contract_ops@localhost:5432/contract_ops?sslmode=disable
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version: "1.26.5"
+      - run: go run ./cmd/migrate
+      - run: go run ./cmd/migrate down
+      - run: go run ./cmd/migrate down
+      - run: go run ./cmd/migrate
       - run: go test ./...
       - uses: golangci/golangci-lint-action@v9.2.0
         with:

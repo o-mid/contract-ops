@@ -45,6 +45,13 @@ func main() {
 	defer pool.Close()
 
 	store := activity.New(pool)
+	stopListen, err := store.Listen(ctx)
+	if err != nil {
+		logger.Error("listen", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+	defer stopListen()
+
 	for _, fixture := range events.Fixtures() {
 		if _, err := store.Append(ctx, fixture); err != nil {
 			logger.Error("seed events", slog.String("error", err.Error()))

@@ -4,6 +4,7 @@ package activity
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 	"sync"
 	"time"
@@ -13,9 +14,10 @@ import (
 	"github.com/o-mid/contract-ops/api/internal/events"
 )
 
-// Store is the Postgres-backed event feed. Subscribers in this process are
-// woken when this process inserts a row. Cross-process wakeups are added
-// with LISTEN/NOTIFY.
+const notifyChannel = "activity_events"
+
+// Store is the Postgres-backed event feed. Inserts in this process wake local
+// subscribers immediately. LISTEN also wakes them when another API replica writes.
 type Store struct {
 	pool *pgxpool.Pool
 	mu   sync.Mutex
@@ -179,6 +181,36 @@ func (s *Store) Append(ctx context.Context, event events.Event) (bool, error) {
 	}
 	s.notify()
 	return true, nil
+}
+
+// Listen holds one pool connection and wakes subscribers when any replica
+// changes the feed. The returned function blocks until that connection is released.
+func (s *Store) Listen(ctx context.Context) (func(), error) {
+	conn, err := s.pool.Acquire(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("acquire listen connection: %w", err)
+	}
+	if _, err := conn.Exec(ctx, "LISTEN "+notifyChannel); err != nil {
+		conn.Release()
+		return nil, fmt.Errorf("listen %s: %w", notifyChannel, err)
+	}
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		defer conn.Release()
+		for {
+			if _, err := conn.Conn().WaitForNotification(ctx); err != nil {
+				if ctx.Err() == nil {
+					slog.Error("activity listen stopped", slog.String("error", err.Error()))
+				}
+				return
+			}
+			s.notify()
+		}
+	}()
+
+	return func() { <-done }, nil
 }
 
 func (s *Store) Subscribe(context.Context) (<-chan struct{}, func(), error) {
