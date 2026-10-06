@@ -18,7 +18,7 @@ This repo is for showcasing practical skills relevant to modern web engineering 
 | Maintainability | Small packages, explicit loading/empty/error/retry states, runtime response validation, CI |
 | Reliability habits | Deterministic fixtures, abort/cleanup on stream reconnect, mutex-safe store, signal-based shutdown |
 
-It is **not** a production platform. There is no database, authentication, pagination broker, or multi-service deployment. The point is a reviewable slice of front-end / API / contract engineering.
+It is **not** a production platform. There is no authentication or pagination, and the API does not connect to a database yet. The point is a reviewable slice of front-end / API / contract engineering.
 
 ## Screenshots
 
@@ -72,27 +72,29 @@ The frontend owns interaction state. The API owns filtering and response shape. 
 
 ## Run locally
 
-Requirements: Node.js 18+, npm, and Go 1.26+.
+Requirements: Node.js 18+, npm, Go 1.26+, and Docker.
 
 ```bash
+make up
 npm install
-cd api && go test ./... && go run ./cmd/api
-```
-
-In another terminal:
-
-```bash
 npm run dev
 ```
 
-Open `http://localhost:5173`. Leave the page open to watch the list grow from 4 to 8 events.
+`make up` builds the API and starts it with Postgres 16. The API listens on port 8080. Postgres listens on port 5432 and is not used by the process yet; the event feed is still in memory. Open `http://localhost:5173` and leave the page open to watch the list grow from 4 to 8 events. `make down` stops the stack.
+
+To run the API on the host instead of in Docker:
+
+```bash
+cd api && go run ./cmd/api
+```
 
 ## Verify
 
 ```bash
-npm run check
-cd api && go test ./...
+make test
 ```
+
+`make test` runs `go test ./...` in `api/` and `npm run check`.
 
 ## API
 
@@ -112,7 +114,7 @@ Design notes: [`docs/architecture.md`](./docs/architecture.md)
 
 ## Scope and tradeoffs
 
-Omitted on purpose: persistence, auth, multi-tenant CORS, rate limiting, tracing, and a real event bus. The live generator is demo behaviour over an in-memory store so the contract and UI states stay easy to explain in an interview.
+Omitted on purpose: persistence, auth, multi-tenant CORS, rate limiting, tracing, and a real event bus. Compose starts Postgres 16 beside the API, and the API does not connect to it yet. The live generator is demo behaviour over an in-memory store so the contract and UI states stay easy to explain in an interview.
 
 ## Licence
 
