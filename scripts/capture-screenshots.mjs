@@ -40,7 +40,8 @@ const shots = [
     path: "/console?view=costs",
     wait: 800,
     needsKey: true,
-    waitFor: "Billing rows"
+    waitFor: "Billing rows",
+    waitForTableRow: true
   }
 ];
 
@@ -72,6 +73,9 @@ for (const shot of shots) {
     await locator.waitFor({
       timeout: 30_000
     });
+    if (shot.waitForTableRow) {
+      await page.getByRole("table").locator("tbody tr").first().waitFor({ timeout: 60_000 });
+    }
     await page.waitForTimeout(400);
   }
   await page.waitForTimeout(shot.wait);

@@ -6,7 +6,7 @@ The **web app** is Next.js 15 and TypeScript (landing page, animated architectur
 
 ## What is running
 
-`api` serves HTTP. It migrates on boot, then listens. `worker` claims sync jobs. Compose starts one. The Railway project runs the API and the console, not a separate worker. `migrate` is the same goose binary Compose and CI call directly. The image also contains it, but the container entrypoint is `/api`, so the API and the worker apply migrations themselves before they serve.
+`api` serves HTTP. It migrates on boot, then listens. `worker` claims sync jobs. Compose starts one. On Railway the API, Next console, and a separate `worker` service share the same Postgres (`docs/deploy-railway.md`). `migrate` is the same goose binary Compose and CI call directly. The image also contains it, but the container entrypoint is `/api`, so the API and the worker apply migrations themselves before they serve.
 
 The console reads the **public** activity feed over SSE. With a workspace API key (Settings), it also calls connection and sync routes over ordinary `fetch` requests.
 
@@ -28,7 +28,7 @@ Railway service roots and worker setup: [`docs/deploy-railway.md`](docs/deploy-r
 - **Costs** — workspace billing rows from `GET /v1/costs` (requires API key; needs worker + backfill for data).
 - **Settings** — API base URL and bearer key (stored in the browser only).
 
-Screenshots for filters, empty state, connections, and settings: [`docs/screenshots/`](docs/screenshots/). Regenerate with `make up`, `cd web && npm run dev`, then `npm run screenshots` (Playwright targets `http://localhost:3000/console` and seeds the local API key in browser storage).
+Screenshots (activity, connections, costs, settings, empty state): [`docs/screenshots/`](docs/screenshots/). Regenerate with `make up`, `cd web && npm run dev`, run a connection backfill so **Costs** has rows, then `npm run screenshots` from the repo root.
 
 `/healthz` means the process is up. `/readyz` means Postgres answers and its goose version matches the migrations compiled into that binary.
 

@@ -11,7 +11,7 @@ cd web && npm run dev
 
 Open `http://localhost:3000` and `http://localhost:3000/console`. Paste `BOOTSTRAP_API_KEY` from [`.env.example`](../.env.example) into **Settings** so **Connections**, **Costs**, and backfill work.
 
-Optional: `npm run screenshots` (API + Next dev running) refreshes [`screenshots/`](./screenshots/).
+Optional: after a backfill, `npm run screenshots` (API + Next dev running) refreshes [`docs/screenshots/`](./screenshots/).
 
 ## Walkthrough
 

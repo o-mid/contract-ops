@@ -16,14 +16,14 @@ api  ---- activity_events ---- LISTEN/NOTIFY (empty payload)
                 v
 worker  claims a job, opens the secret, Fetch, Normalize
                 |
-                +---- raw_batches + sync_cursors, or a quarantined batch
+                +---- raw_batches + cost_rows + sync_cursors, or a quarantined batch
 ```
 
 ## Boot
 
 `cmd/api` and `cmd/worker` both call goose before they open their pool. That is how a single container can migrate: the image entrypoint is `/api`, so a platform start command cannot chain `/migrate` and then `/api`. Compose still runs `cmd/migrate` as its own service and waits until it exits. Running `Up` again is a no-op once the schema matches.
 
-`/readyz` pings the pool and compares `max(version_id)` in `goose_db_version` with the highest numeric prefix embedded in the binary. A process that is behind the schema fails ready and should not take traffic. The expected version is read from the embedded files. It is not a hardcoded number in the ready check. The ready test currently expects 5, and that assertion has to move when a migration is added.
+`/readyz` pings the pool and compares `max(version_id)` in `goose_db_version` with the highest numeric prefix embedded in the binary. A process that is behind the schema fails ready and should not take traffic. The expected version is read from the embedded files. It is not a hardcoded number in the ready check. The ready test pins the expected migration count and must be updated when a new migration ships.
 
 The pool allows 10 connections, idle for up to 5 minutes, with a health check every 30 seconds. Each connection sets `statement_timeout` to 5 seconds. Open pings before it returns.
 
@@ -36,7 +36,7 @@ Shutdown on SIGINT or SIGTERM waits `SHUTDOWN_TIMEOUT` (default 5 seconds) for t
 chi middleware, outer to inner:
 
 1. Request id. A safe client `X-Request-ID` is kept. Otherwise one is generated.
-2. CORS, one origin, default `http://localhost:5173`.
+2. CORS, one origin, default `http://localhost:3000` for the Next console (legacy Vite dev used `http://localhost:5173`).
 3. Access log, one JSON line after the handler returns.
 4. Recover.
 5. Prometheus instrumentation, when wired. The recorder implements `Flush` and `Unwrap` so an SSE write still flushes.
@@ -144,7 +144,7 @@ Outcomes:
 
 `payload_hash` is SHA-256 of the connection id, the window start, the window end, and each payload, separated by zero bytes. A retry of the same page is one row. The next day is a different row.
 
-The worker runs the scheduler plus `WORKER_CONCURRENCY` runner loops (default 2, allowed 1 through 32). It migrates, and it requires `MASTER_KEY`. It builds the same registry as the API: `fakevendor`, plus disabled OpenAI and Anthropic.
+The worker runs the scheduler plus `WORKER_CONCURRENCY` runner loops (default 2, allowed 1 through 32). It migrates, and it requires `MASTER_KEY`. It builds the same connector registry as the API (`fakevendor`, `openai`, `anthropic`).
 
 Tests cover the claims that are easy to get wrong: three runners and one job insert one batch; drift does not move the watermark and sets `degraded` / `schema_drift`; a three-day backfill never has more than one chunk in flight and ends with three batches; a 429 followed by success writes one batch. The rate-limit test sets `next_run_at` to now before the second claim, because the first backoff is 2 seconds.
 
@@ -152,6 +152,4 @@ Tests cover the claims that are easy to get wrong: three runners and one job ins
 
 The API image is a multi-stage build: `golang:1.26.5`, then distroless static, nonroot. It copies `/api`, `/migrate`, and `/worker`. `ENTRYPOINT` is `/api`. Compose overrides that for the migrate and worker services.
 
-On Railway the API and the web console are separate services. The API build context is the `api` directory. The web build is the Vite app, with `VITE_API_BASE_URL` pointed at the API origin and `CORS_ORIGIN` pointed back at the console. Production Postgres is the Railway Postgres template. The API's `DATABASE_URL` references that service.
-
-A Railway worker is not part of this deploy. The start command on that platform becomes arguments to the entrypoint, and the entrypoint is `/api`, so a second service cannot currently be told to exec `/worker` without changing the image.
+On Railway the API, Next.js console, and worker are separate services. Set each service **root directory** to `api` or `web` so builds do not pick up the repo-root `package.json`. The API image entrypoint is `/api`; the worker service uses the same image with start command `/worker`. Web env: `NEXT_PUBLIC_API_BASE_URL` → API origin. API env: `DATABASE_URL`, `MASTER_KEY`, `BOOTSTRAP_API_KEY`, `CORS_ORIGIN` (console origin). See [`deploy-railway.md`](deploy-railway.md).
