@@ -69,6 +69,27 @@ func TestLoadOverrides(t *testing.T) {
 	}
 }
 
+func TestDatabaseURL(t *testing.T) {
+	t.Setenv("DATABASE_URL", "")
+	if _, err := DatabaseURL(); err == nil {
+		t.Fatal("expected missing DATABASE_URL to fail")
+	}
+
+	t.Setenv("DATABASE_URL", "http://localhost/db")
+	if _, err := DatabaseURL(); err == nil {
+		t.Fatal("expected non-postgres DATABASE_URL to fail")
+	}
+
+	t.Setenv("DATABASE_URL", "postgres://contract_ops:contract_ops@localhost:5432/contract_ops?sslmode=disable")
+	got, err := DatabaseURL()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got == "" {
+		t.Fatal("expected url")
+	}
+}
+
 func TestLoadRejectsInvalidValues(t *testing.T) {
 	tests := []struct {
 		name string

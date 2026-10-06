@@ -135,6 +135,23 @@ func timeoutFromEnv() (time.Duration, error) {
 	return timeout, nil
 }
 
+// DatabaseURL returns the Postgres URL. The API and migrate command both
+// refuse to start without one, because the event feed lives in the database.
+func DatabaseURL() (string, error) {
+	raw, ok := os.LookupEnv("DATABASE_URL")
+	if !ok || strings.TrimSpace(raw) == "" {
+		return "", fmt.Errorf("DATABASE_URL is required")
+	}
+
+	raw = strings.TrimSpace(raw)
+	parsed, err := url.Parse(raw)
+	if err != nil || parsed.Host == "" || (parsed.Scheme != "postgres" && parsed.Scheme != "postgresql") {
+		return "", fmt.Errorf("DATABASE_URL must be a postgres URL")
+	}
+
+	return raw, nil
+}
+
 func boolFromEnv(key string, fallback bool) (bool, error) {
 	raw, ok := os.LookupEnv(key)
 	if !ok || strings.TrimSpace(raw) == "" {
