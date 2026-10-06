@@ -1,6 +1,7 @@
 package events
 
 import (
+	"context"
 	"testing"
 	"time"
 )
@@ -8,7 +9,10 @@ import (
 func TestStoreListFiltersByStatusAndQuery(t *testing.T) {
 	store := NewStore(Fixtures())
 
-	page := store.List("fireblocks", string(StatusProcessed))
+	page, err := store.List(context.Background(), Query{Text: "fireblocks", Status: string(StatusProcessed)})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if page.Total != 1 {
 		t.Fatalf("expected one event, got %d", page.Total)
@@ -22,7 +26,10 @@ func TestStoreListFiltersByStatusAndQuery(t *testing.T) {
 func TestStoreListOrdersEventsMostRecentFirst(t *testing.T) {
 	store := NewStore(Fixtures())
 
-	page := store.List("", "")
+	page, err := store.List(context.Background(), Query{})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if page.Events[0].ID != "evt_01HV1B00" {
 		t.Fatalf("expected newest event first, got %q", page.Events[0].ID)
@@ -34,13 +41,18 @@ func TestStoreAppendCapsAtMaxEvents(t *testing.T) {
 
 	for _, pending := range PendingFixtures() {
 		pending.OccurredAt = time.Now().UTC()
-		if !store.Append(pending) {
+		inserted, err := store.Append(context.Background(), pending)
+		if err != nil || !inserted {
 			t.Fatalf("expected append to succeed for %q", pending.ID)
 		}
 	}
 
-	if store.Len() != MaxEvents {
-		t.Fatalf("expected %d events, got %d", MaxEvents, store.Len())
+	count, err := store.Len(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != MaxEvents {
+		t.Fatalf("expected %d events, got %d", MaxEvents, count)
 	}
 
 	extra := Event{
@@ -51,22 +63,34 @@ func TestStoreAppendCapsAtMaxEvents(t *testing.T) {
 		OccurredAt:    time.Now().UTC(),
 		CorrelationID: "crl_overflow",
 	}
-	if store.Append(extra) {
+	inserted, err := store.Append(context.Background(), extra)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if inserted {
 		t.Fatal("expected append beyond MaxEvents to fail")
 	}
-	if store.Len() != MaxEvents {
-		t.Fatalf("expected length to remain %d, got %d", MaxEvents, store.Len())
+	count, err = store.Len(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != MaxEvents {
+		t.Fatalf("expected length to remain %d, got %d", MaxEvents, count)
 	}
 }
 
 func TestStoreAppendNotifiesSubscribers(t *testing.T) {
 	store := NewStore(Fixtures())
-	changes, cancel := store.Subscribe()
+	changes, cancel, err := store.Subscribe(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer cancel()
 
 	pending := PendingFixtures()[0]
 	pending.OccurredAt = time.Now().UTC()
-	if !store.Append(pending) {
+	inserted, err := store.Append(context.Background(), pending)
+	if err != nil || !inserted {
 		t.Fatal("expected append to succeed")
 	}
 
@@ -82,12 +106,39 @@ func TestStoreAppendKeepsNewestFirst(t *testing.T) {
 	pending := PendingFixtures()[0]
 	pending.OccurredAt = time.Date(2026, 7, 21, 9, 0, 0, 0, time.UTC)
 
-	if !store.Append(pending) {
+	inserted, err := store.Append(context.Background(), pending)
+	if err != nil || !inserted {
 		t.Fatal("expected append to succeed")
 	}
 
-	page := store.List("", "")
+	page, err := store.List(context.Background(), Query{})
+	if err != nil {
+		t.Fatal(err)
+	}
 	if page.Events[0].ID != pending.ID {
 		t.Fatalf("expected appended event first, got %q", page.Events[0].ID)
+	}
+}
+
+func TestStoreListPaginatesWithACursor(t *testing.T) {
+	store := NewStore(Fixtures())
+
+	first, err := store.List(context.Background(), Query{Limit: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(first.Events) != 2 || first.Total != 4 || first.NextCursor == "" {
+		t.Fatalf("first page = %+v", first)
+	}
+
+	second, err := store.List(context.Background(), Query{Limit: 2, Cursor: first.NextCursor})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(second.Events) != 2 || second.NextCursor != "" {
+		t.Fatalf("second page = %+v", second)
+	}
+	if second.Events[0].ID == first.Events[0].ID || second.Events[0].ID == first.Events[1].ID {
+		t.Fatalf("second page repeated an id from the first: %+v", second.Events)
 	}
 }

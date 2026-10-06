@@ -10,9 +10,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/o-mid/contract-ops/api/internal/activity"
 	"github.com/o-mid/contract-ops/api/internal/events"
 	"github.com/o-mid/contract-ops/api/internal/httpapi"
 	"github.com/o-mid/contract-ops/api/internal/platform/config"
+	"github.com/o-mid/contract-ops/api/internal/platform/db"
 	applog "github.com/o-mid/contract-ops/api/internal/platform/log"
 )
 
@@ -26,7 +28,37 @@ func main() {
 	logger := applog.New(cfg.LogLevel)
 	slog.SetDefault(logger)
 
-	store := events.NewStore(events.Fixtures())
+	databaseURL, err := config.DatabaseURL()
+	if err != nil {
+		logger.Error("invalid config", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	pool, err := db.Open(ctx, databaseURL)
+	if err != nil {
+		logger.Error("database", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+	defer pool.Close()
+
+	store := activity.New(pool)
+	stopListen, err := store.Listen(ctx)
+	if err != nil {
+		logger.Error("listen", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+	defer stopListen()
+
+	for _, fixture := range events.Fixtures() {
+		if _, err := store.Append(ctx, fixture); err != nil {
+			logger.Error("seed events", slog.String("error", err.Error()))
+			os.Exit(1)
+		}
+	}
+
 	server := &http.Server{
 		Addr: ":" + cfg.Port,
 		Handler: httpapi.NewServer(store, httpapi.Options{
@@ -35,9 +67,6 @@ func main() {
 		}).Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
-
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
 
 	if cfg.DemoGenerator {
 		go events.RunGenerator(ctx, store, 5*time.Second)

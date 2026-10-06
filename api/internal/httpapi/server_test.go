@@ -90,7 +90,8 @@ func TestStreamEventsSendsSnapshotAndUpdate(t *testing.T) {
 
 	pending := events.PendingFixtures()[0]
 	pending.OccurredAt = time.Now().UTC()
-	if !store.Append(pending) {
+	inserted, err := store.Append(context.Background(), pending)
+	if err != nil || !inserted {
 		t.Fatal("expected append to succeed")
 	}
 

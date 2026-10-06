@@ -18,7 +18,7 @@ This repo is for showcasing practical skills relevant to modern web engineering 
 | Maintainability | Small packages, explicit loading/empty/error/retry states, runtime response validation, CI |
 | Reliability habits | Deterministic fixtures, abort/cleanup on stream reconnect, mutex-safe store, signal-based shutdown |
 
-It is **not** a production platform. There is no authentication or pagination, and the API does not connect to a database yet. The point is a reviewable slice of front-end / API / contract engineering.
+It is **not** a production platform. There is no authentication. The event feed is stored in Postgres and the list is cursor-paginated. The point is a reviewable slice of front-end / API / contract engineering.
 
 ## Screenshots
 
@@ -80,12 +80,14 @@ npm install
 npm run dev
 ```
 
-`make up` builds the API and starts it with Postgres 16. The API listens on port 8080. Postgres listens on port 5432 and is not used by the process yet; the event feed is still in memory. Open `http://localhost:5173` and leave the page open to watch the list grow from 4 to 8 events. `make down` stops the stack.
+`make up` builds the API, applies migrations, and starts it with Postgres 16. The API listens on port 8080. Postgres listens on port 5432. Open `http://localhost:5173` and leave the page open to watch the list grow from 4 to 8 events. `make down` stops the stack. The four starting events stay in Postgres, so a second `make up` does not replay the live demo unless you remove the volume with `docker compose down -v`.
 
-To run the API on the host instead of in Docker:
+To run the API on the host instead of in Docker, point it at a migrated database:
 
 ```bash
-cd api && go run ./cmd/api
+cd api
+DATABASE_URL=postgres://contract_ops:contract_ops@localhost:5432/contract_ops?sslmode=disable go run ./cmd/migrate
+DATABASE_URL=postgres://contract_ops:contract_ops@localhost:5432/contract_ops?sslmode=disable go run ./cmd/api
 ```
 
 ## Verify
@@ -114,7 +116,7 @@ Design notes: [`docs/architecture.md`](./docs/architecture.md)
 
 ## Scope and tradeoffs
 
-Omitted on purpose: persistence, auth, multi-tenant CORS, rate limiting, tracing, and a real event bus. Compose starts Postgres 16 beside the API, and the API does not connect to it yet. The live generator is demo behaviour over an in-memory store so the contract and UI states stay easy to explain in an interview.
+Omitted on purpose: auth, multi-tenant CORS, rate limiting, tracing, and a real event bus. The live generator still appends the demo fixtures, and those rows now live in Postgres.
 
 ## Licence
 
