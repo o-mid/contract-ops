@@ -27,3 +27,9 @@ jobs:
         with:
           go-version: "1.26.5"
       - run: go test ./...
+      - uses: golangci/golangci-lint-action@v9.2.0
+        with:
+          version: v2.13.2
+          install-only: true
+      - run: golangci-lint run ./...
+      - run: golangci-lint fmt --diff

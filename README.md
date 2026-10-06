@@ -94,7 +94,7 @@ cd api && go run ./cmd/api
 make test
 ```
 
-`make test` runs `go test ./...` in `api/` and `npm run check`.
+`make test` runs `go test ./...` in `api/` and `npm run check`. `make lint` runs golangci-lint on the API module.
 
 ## API
 

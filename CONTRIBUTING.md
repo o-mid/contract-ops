@@ -13,6 +13,7 @@ This repository is a skills showcase. Keep changes small enough to review in one
 
 ```bash
 make test
+make lint
 ```
 
 ## Accessibility baseline
