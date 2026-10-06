@@ -1,0 +1,16 @@
+{
+  "providerName": "fakevendor",
+  "billingAccountId": "fake-account",
+  "serviceName": "completions",
+  "serviceCategory": "AI and Machine Learning",
+  "skuId": "tokens",
+  "chargeCategory": "Usage",
+  "chargePeriodStart": "2026-07-01T00:00:00Z",
+  "chargePeriodEnd": "2026-07-02T00:00:00Z",
+  "billedCost": "1.25",
+  "effectiveCost": "1.25",
+  "billingCurrency": "USD",
+  "usageQuantity": "1000",
+  "usageUnit": "tokens",
+  "sourceRecordId": "fv_1"
+}
