@@ -36,6 +36,7 @@ services:
       SHUTDOWN_TIMEOUT: 5s
       DEMO_GENERATOR: "true"
       DATABASE_URL: postgres://contract_ops:contract_ops@postgres:5432/contract_ops?sslmode=disable
+      BOOTSTRAP_API_KEY: ${BOOTSTRAP_API_KEY:-co_local_dev_key_not_for_production}
     ports:
       - "8080:8080"
     depends_on:

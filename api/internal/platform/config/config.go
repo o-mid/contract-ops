@@ -135,6 +135,19 @@ func timeoutFromEnv() (time.Duration, error) {
 	return timeout, nil
 }
 
+// BootstrapAPIKey is the local workspace key. Empty means no key is seeded.
+// It is a development credential, in the same class as the local database password.
+func BootstrapAPIKey() (string, error) {
+	raw := strings.TrimSpace(os.Getenv("BOOTSTRAP_API_KEY"))
+	if raw == "" {
+		return "", nil
+	}
+	if len(raw) < 20 || strings.ContainsAny(raw, " \t\r\n") {
+		return "", fmt.Errorf("BOOTSTRAP_API_KEY must be at least 20 characters and contain no whitespace")
+	}
+	return raw, nil
+}
+
 // DatabaseURL returns the Postgres URL. The API and migrate command both
 // refuse to start without one, because the event feed lives in the database.
 func DatabaseURL() (string, error) {

@@ -34,6 +34,10 @@ type Options struct {
 	Metrics http.Handler
 	// Instrument records RED metrics. It must pass Flush through for the event stream.
 	Instrument func(http.Handler) http.Handler
+	// Authenticate checks a workspace API key. Nil leaves every route open.
+	Authenticate func(http.Handler) http.Handler
+	// Idempotency replays stored responses for mutating requests. Nil disables it.
+	Idempotency func(http.Handler) http.Handler
 }
 
 func (o Options) withDefaults() Options {
@@ -71,6 +75,12 @@ func (s Server) Handler() http.Handler {
 		router.Use(s.opts.Instrument)
 	}
 	router.Use(httpx.BodyLimit(s.opts.BodyLimitBytes))
+	if s.opts.Authenticate != nil {
+		router.Use(s.opts.Authenticate)
+	}
+	if s.opts.Idempotency != nil {
+		router.Use(s.opts.Idempotency)
+	}
 	router.Use(httpx.Timeout(s.opts.RequestTimeout, func(request *http.Request) bool {
 		// A request timeout would close the stream and the UI would treat
 		// that as a failed connection. The client closes it instead.
