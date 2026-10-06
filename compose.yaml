@@ -32,7 +32,7 @@ services:
     environment:
       PORT: "8080"
       LOG_LEVEL: info
-      CORS_ORIGIN: http://localhost:5173
+      CORS_ORIGIN: http://localhost:3000
       SHUTDOWN_TIMEOUT: 5s
       DEMO_GENERATOR: "true"
       DATABASE_URL: postgres://contract_ops:contract_ops@postgres:5432/contract_ops?sslmode=disable

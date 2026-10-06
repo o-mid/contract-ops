@@ -108,11 +108,18 @@ func main() {
 		connectors.Disabled{KindName: "anthropic", DisplayName: "Anthropic"},
 	)
 	connectionStore := connections.NewStore(pool)
-	connectionHandler := connections.NewHandler(connections.NewService(
+	connectionService := connections.NewService(
 		connectionStore,
 		credentials.NewSealer(keyProvider),
 		registryVerifier{registry: registry},
-	))
+	)
+	connectionHandler := connections.NewHandler(connectionService)
+	if cfg.DemoGenerator {
+		if err := connections.SeedDemo(ctx, connectionService, auth.LocalWorkspaceID); err != nil {
+			logger.Error("seed demo connections", slog.String("error", err.Error()))
+			os.Exit(1)
+		}
+	}
 	syncHandler := sync.NewHandler(sync.NewStore(pool), connectionStore)
 
 	metrics := telemetry.New()

@@ -1,36 +1,40 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Contract Ops web
 
-## Getting Started
+Next.js 15 app: marketing landing (`/`), animated architecture section, and the operations console (`/console`).
 
-First, run the development server:
+## Local
 
 ```bash
+make up   # API on :8080
+npm ci
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000 and http://localhost:3000/console. In **Settings**, paste `BOOTSTRAP_API_KEY` from the repo root `.env.example`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+`NEXT_PUBLIC_API_BASE_URL` defaults to `http://localhost:8080`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Railway
 
-## Learn More
+This folder is the deploy root for the **web** service.
 
-To learn more about Next.js, take a look at the following resources:
+1. Service root directory: `web`
+2. Builder: Dockerfile (`web/Dockerfile`)
+3. Variables:
+   - `NEXT_PUBLIC_API_BASE_URL` = your API URL (e.g. `https://api-production-4b82.up.railway.app`)
+4. On the **api** service, set `CORS_ORIGIN` to the console origin (e.g. `https://web-production-a614a.up.railway.app`) so browser `fetch` from Settings/Connections works.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+cd web
+railway link   # project contract-ops, service web
+railway variables set NEXT_PUBLIC_API_BASE_URL=https://api-production-4b82.up.railway.app
+railway up
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Screenshots
 
-## Deploy on Vercel
+From the repo root (API + `npm run dev` in `web`):
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+SCREENSHOT_BASE_URL=http://localhost:3000 npm run screenshots
+```

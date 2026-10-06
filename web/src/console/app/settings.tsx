@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { SettingsContext } from "./settingsContext";
 import {
   API_BASE_STORAGE,
@@ -16,6 +16,17 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     const stored = readStorage(API_BASE_STORAGE);
     return stored || defaultApiBaseUrl;
   });
+
+  useEffect(() => {
+    const storedKey = readStorage(API_KEY_STORAGE);
+    const storedBase = readStorage(API_BASE_STORAGE);
+    if (storedKey) {
+      setApiKeyState(storedKey);
+    }
+    if (storedBase) {
+      setApiBaseUrlState(storedBase);
+    }
+  }, []);
 
   const setApiKey = useCallback((key: string) => {
     setApiKeyState(key);

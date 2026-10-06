@@ -15,6 +15,9 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://web-production-a614a.up.railway.app"
+  ),
   title: "Contract Ops — integrations control plane",
   description:
     "Open-source integrations control plane with a live activity console, sealed credentials, and sync jobs.",
