@@ -145,6 +145,162 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /v1/connections:
+    get:
+      summary: List connections in the caller's workspace
+      security:
+        - workspaceKey: []
+      responses:
+        "200":
+          description: Connections, without secrets
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [connections]
+                properties:
+                  connections:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Connection"
+        "401":
+          description: Missing or unknown API key
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    post:
+      summary: Create a connection
+      security:
+        - workspaceKey: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConnectionCreate"
+      responses:
+        "201":
+          description: Created. The secret is stored encrypted and is not returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Connection"
+        "400":
+          description: Invalid connection
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "401":
+          description: Missing or unknown API key
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /v1/connections/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get one connection
+      security:
+        - workspaceKey: []
+      responses:
+        "200":
+          description: Connection, without the secret
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Connection"
+        "404":
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    patch:
+      summary: Rename a connection or pause it
+      security:
+        - workspaceKey: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConnectionPatch"
+      responses:
+        "200":
+          description: Updated connection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Connection"
+  /v1/connections/{id}/verify:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Check the stored credential with the vendor
+      security:
+        - workspaceKey: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Credential accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Connection"
+        "401":
+          description: Credential rejected
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /v1/connections/{id}/rotate:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Replace the credential after the new secret verifies
+      security:
+        - workspaceKey: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CredentialRotate"
+      responses:
+        "200":
+          description: New credential stored. The previous secret is no longer active.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Connection"
+        "401":
+          description: New credential rejected. The previous secret is unchanged.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
 components:
   schemas:
     Event:
@@ -209,6 +365,71 @@ components:
           type: boolean
         action:
           type: string
+    Connection:
+      type: object
+      required: [id, kind, name, status]
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+          enum: [fakevendor, openai, anthropic]
+        name:
+          type: string
+        status:
+          type: string
+          enum: [healthy, degraded, failing, needs_auth, paused]
+        statusReasonCode:
+          type: string
+        lastSuccessAt:
+          type: string
+          format: date-time
+        lastErrorAt:
+          type: string
+          format: date-time
+        credential:
+          $ref: "#/components/schemas/Credential"
+    Credential:
+      type: object
+      required: [fingerprint]
+      properties:
+        fingerprint:
+          type: string
+          description: SHA-256 of the secret. The secret itself is never returned.
+        expiresAt:
+          type: string
+          format: date-time
+    ConnectionCreate:
+      type: object
+      required: [kind, name, secret]
+      properties:
+        kind:
+          type: string
+          enum: [fakevendor, openai, anthropic]
+        name:
+          type: string
+        secret:
+          type: string
+          description: Sent once. Stored as an encrypted envelope, never returned.
+        expiresAt:
+          type: string
+          format: date-time
+    ConnectionPatch:
+      type: object
+      properties:
+        name:
+          type: string
+        paused:
+          type: boolean
+    CredentialRotate:
+      type: object
+      required: [secret]
+      properties:
+        secret:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
   securitySchemes:
     workspaceKey:
       type: http

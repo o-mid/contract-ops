@@ -7,6 +7,75 @@ import (
 	"time"
 )
 
+// Defines values for ConnectionKind.
+const (
+	ConnectionKindAnthropic  ConnectionKind = "anthropic"
+	ConnectionKindFakevendor ConnectionKind = "fakevendor"
+	ConnectionKindOpenai     ConnectionKind = "openai"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionKind enum.
+func (e ConnectionKind) Valid() bool {
+	switch e {
+	case ConnectionKindAnthropic:
+		return true
+	case ConnectionKindFakevendor:
+		return true
+	case ConnectionKindOpenai:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionStatus.
+const (
+	Degraded  ConnectionStatus = "degraded"
+	Failing   ConnectionStatus = "failing"
+	Healthy   ConnectionStatus = "healthy"
+	NeedsAuth ConnectionStatus = "needs_auth"
+	Paused    ConnectionStatus = "paused"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionStatus enum.
+func (e ConnectionStatus) Valid() bool {
+	switch e {
+	case Degraded:
+		return true
+	case Failing:
+		return true
+	case Healthy:
+		return true
+	case NeedsAuth:
+		return true
+	case Paused:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionCreateKind.
+const (
+	ConnectionCreateKindAnthropic  ConnectionCreateKind = "anthropic"
+	ConnectionCreateKindFakevendor ConnectionCreateKind = "fakevendor"
+	ConnectionCreateKindOpenai     ConnectionCreateKind = "openai"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionCreateKind enum.
+func (e ConnectionCreateKind) Valid() bool {
+	switch e {
+	case ConnectionCreateKindAnthropic:
+		return true
+	case ConnectionCreateKindFakevendor:
+		return true
+	case ConnectionCreateKindOpenai:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for EventStatus.
 const (
 	EventStatusFailed    EventStatus = "failed"
@@ -76,6 +145,57 @@ func (e GetV1EventsStreamParamsStatus) Valid() bool {
 	}
 }
 
+// Connection defines model for Connection.
+type Connection struct {
+	Credential       *Credential      `json:"credential,omitempty"`
+	Id               string           `json:"id"`
+	Kind             ConnectionKind   `json:"kind"`
+	LastErrorAt      *time.Time       `json:"lastErrorAt,omitempty"`
+	LastSuccessAt    *time.Time       `json:"lastSuccessAt,omitempty"`
+	Name             string           `json:"name"`
+	Status           ConnectionStatus `json:"status"`
+	StatusReasonCode *string          `json:"statusReasonCode,omitempty"`
+}
+
+// ConnectionKind defines model for Connection.Kind.
+type ConnectionKind string
+
+// ConnectionStatus defines model for Connection.Status.
+type ConnectionStatus string
+
+// ConnectionCreate defines model for ConnectionCreate.
+type ConnectionCreate struct {
+	ExpiresAt *time.Time           `json:"expiresAt,omitempty"`
+	Kind      ConnectionCreateKind `json:"kind"`
+	Name      string               `json:"name"`
+
+	// Secret Sent once. Stored as an encrypted envelope, never returned.
+	Secret string `json:"secret"`
+}
+
+// ConnectionCreateKind defines model for ConnectionCreate.Kind.
+type ConnectionCreateKind string
+
+// ConnectionPatch defines model for ConnectionPatch.
+type ConnectionPatch struct {
+	Name   *string `json:"name,omitempty"`
+	Paused *bool   `json:"paused,omitempty"`
+}
+
+// Credential defines model for Credential.
+type Credential struct {
+	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
+
+	// Fingerprint SHA-256 of the secret. The secret itself is never returned.
+	Fingerprint string `json:"fingerprint"`
+}
+
+// CredentialRotate defines model for CredentialRotate.
+type CredentialRotate struct {
+	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
+	Secret    string     `json:"secret"`
+}
+
 // Error defines model for Error.
 type Error struct {
 	Error string `json:"error"`
@@ -116,6 +236,33 @@ type Problem struct {
 	Type      string  `json:"type"`
 }
 
+// IdempotencyKey defines model for IdempotencyKey.
+type IdempotencyKey = string
+
+// PostV1ConnectionsParams defines parameters for PostV1Connections.
+type PostV1ConnectionsParams struct {
+	// IdempotencyKey On a mutating request, a retry with the same key and body returns the stored response. The same key with a different body is rejected.
+	IdempotencyKey *IdempotencyKey `json:"Idempotency-Key,omitempty"`
+}
+
+// PatchV1ConnectionsIdParams defines parameters for PatchV1ConnectionsId.
+type PatchV1ConnectionsIdParams struct {
+	// IdempotencyKey On a mutating request, a retry with the same key and body returns the stored response. The same key with a different body is rejected.
+	IdempotencyKey *IdempotencyKey `json:"Idempotency-Key,omitempty"`
+}
+
+// PostV1ConnectionsIdRotateParams defines parameters for PostV1ConnectionsIdRotate.
+type PostV1ConnectionsIdRotateParams struct {
+	// IdempotencyKey On a mutating request, a retry with the same key and body returns the stored response. The same key with a different body is rejected.
+	IdempotencyKey *IdempotencyKey `json:"Idempotency-Key,omitempty"`
+}
+
+// PostV1ConnectionsIdVerifyParams defines parameters for PostV1ConnectionsIdVerify.
+type PostV1ConnectionsIdVerifyParams struct {
+	// IdempotencyKey On a mutating request, a retry with the same key and body returns the stored response. The same key with a different body is rejected.
+	IdempotencyKey *IdempotencyKey `json:"Idempotency-Key,omitempty"`
+}
+
 // GetV1EventsParams defines parameters for GetV1Events.
 type GetV1EventsParams struct {
 	// Q Case-insensitive match against event ID, source, type, or correlation ID.
@@ -147,3 +294,12 @@ type GetV1EventsStreamParams struct {
 
 // GetV1EventsStreamParamsStatus defines parameters for GetV1EventsStream.
 type GetV1EventsStreamParamsStatus string
+
+// PostV1ConnectionsJSONRequestBody defines body for PostV1Connections for application/json ContentType.
+type PostV1ConnectionsJSONRequestBody = ConnectionCreate
+
+// PatchV1ConnectionsIdJSONRequestBody defines body for PatchV1ConnectionsId for application/json ContentType.
+type PatchV1ConnectionsIdJSONRequestBody = ConnectionPatch
+
+// PostV1ConnectionsIdRotateJSONRequestBody defines body for PostV1ConnectionsIdRotate for application/json ContentType.
+type PostV1ConnectionsIdRotateJSONRequestBody = CredentialRotate

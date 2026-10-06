@@ -3,6 +3,7 @@
 package config
 
 import (
+	"encoding/base64"
 	"fmt"
 	"log/slog"
 	"net/url"
@@ -146,6 +147,20 @@ func BootstrapAPIKey() (string, error) {
 		return "", fmt.Errorf("BOOTSTRAP_API_KEY must be at least 20 characters and contain no whitespace")
 	}
 	return raw, nil
+}
+
+// MasterKey is the 32-byte key that wraps per-secret data keys.
+// It is base64 in the environment. The local value is a development key.
+func MasterKey() ([]byte, error) {
+	raw := strings.TrimSpace(os.Getenv("MASTER_KEY"))
+	if raw == "" {
+		return nil, fmt.Errorf("MASTER_KEY is required")
+	}
+	decoded, err := base64.StdEncoding.DecodeString(raw)
+	if err != nil || len(decoded) != 32 {
+		return nil, fmt.Errorf("MASTER_KEY must be base64 for 32 bytes")
+	}
+	return decoded, nil
 }
 
 // DatabaseURL returns the Postgres URL. The API and migrate command both
