@@ -128,7 +128,6 @@ func (s *Store) List(ctx context.Context, workspaceID string, query Query) (Page
 	if cursorTime != nil {
 		where += fmt.Sprintf(` AND (charge_period_start, id) < ($%d, $%d)`, n, n+1)
 		args = append(args, *cursorTime, cursorID)
-		n += 2
 	}
 
 	var total int
