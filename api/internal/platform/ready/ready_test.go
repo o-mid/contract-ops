@@ -7,7 +7,7 @@ func TestLatestMatchesEmbeddedMigrations(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if latest != 4 {
-		t.Fatalf("latest = %d, want 4", latest)
+	if latest != 5 {
+		t.Fatalf("latest = %d, want 5", latest)
 	}
 }

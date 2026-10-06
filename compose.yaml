@@ -44,5 +44,18 @@ services:
       migrate:
         condition: service_completed_successfully
 
+  worker:
+    build:
+      context: ./api
+    entrypoint: ["/worker"]
+    environment:
+      LOG_LEVEL: info
+      DATABASE_URL: postgres://contract_ops:contract_ops@postgres:5432/contract_ops?sslmode=disable
+      MASTER_KEY: ${MASTER_KEY:-MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}
+      WORKER_CONCURRENCY: "2"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
 volumes:
   postgres_data:

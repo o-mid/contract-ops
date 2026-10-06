@@ -5,8 +5,12 @@ package connectors
 
 import (
 	"context"
+	"errors"
 	"time"
 )
+
+// ErrRejected means the vendor did not accept the credential.
+var ErrRejected = errors.New("credential was rejected")
 
 type Credential struct {
 	Secret string

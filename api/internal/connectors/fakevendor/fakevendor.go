@@ -6,7 +6,6 @@ import (
 	"context"
 	"embed"
 	"encoding/json"
-	"errors"
 	"strings"
 	"time"
 
@@ -38,12 +37,12 @@ func (Connector) Describe() connectors.Descriptor {
 
 func (Connector) Verify(_ context.Context, cred connectors.Credential) error {
 	if strings.TrimSpace(cred.Secret) == "" {
-		return errors.New("credential was rejected")
+		return connectors.ErrRejected
 	}
 	if strings.HasPrefix(strings.TrimSpace(cred.Secret), "{") {
 		var faults faults
 		if err := json.Unmarshal([]byte(cred.Secret), &faults); err != nil {
-			return errors.New("credential was rejected")
+			return connectors.ErrRejected
 		}
 	}
 	return nil
@@ -164,17 +163,28 @@ func (e *DriftError) Error() string {
 	return "schema drift at " + e.Path
 }
 
+func (e *DriftError) SchemaDrift() string { return e.Path }
+
+func (e *VendorError) Code() string {
+	if e.Status == 429 {
+		return "rate_limited"
+	}
+	return "vendor_unavailable"
+}
+
+func (e *VendorError) GetRetryAfter() time.Duration { return e.RetryAfter }
+
 func parseFaults(secret string) (faults, error) {
 	secret = strings.TrimSpace(secret)
 	if secret == "" {
-		return faults{}, errors.New("credential was rejected")
+		return faults{}, connectors.ErrRejected
 	}
 	if !strings.HasPrefix(secret, "{") {
 		return faults{}, nil
 	}
 	var parsed faults
 	if err := json.Unmarshal([]byte(secret), &parsed); err != nil {
-		return faults{}, errors.New("credential was rejected")
+		return faults{}, connectors.ErrRejected
 	}
 	return parsed, nil
 }
