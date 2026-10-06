@@ -1,0 +1,37 @@
+# Shared error catalog. The generator writes Go constants and TypeScript types from this file.
+errors:
+  auth_invalid:
+    severity: error
+    retryable: false
+    action: rotate_key
+    message: "{vendor} rejected the API key on {date}."
+  auth_expired:
+    severity: error
+    retryable: false
+    action: rotate_key_and_backfill
+    message: "Your {vendor} key expired on {date}. Data after that is missing."
+  rate_limited:
+    severity: warning
+    retryable: true
+    action: retry
+    message: "{vendor} is rate-limiting us. We'll retry at {time}."
+  vendor_unavailable:
+    severity: warning
+    retryable: true
+    action: retry
+    message: "{vendor} is down or unreachable since {time}."
+  schema_drift:
+    severity: error
+    retryable: false
+    action: view_report
+    message: "{vendor} changed its data format. We paused writes to keep your numbers right."
+  permission_missing:
+    severity: error
+    retryable: false
+    action: open_docs
+    message: "The key works but can't read billing data."
+  partial_sync:
+    severity: warning
+    retryable: true
+    action: retry_failed_days
+    message: "{n} of {m} days synced."

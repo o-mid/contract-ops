@@ -120,3 +120,22 @@ func TestLoadRejectsInvalidValues(t *testing.T) {
 		})
 	}
 }
+
+func TestBootstrapAPIKey(t *testing.T) {
+	t.Setenv("BOOTSTRAP_API_KEY", "")
+	key, err := BootstrapAPIKey()
+	if err != nil || key != "" {
+		t.Fatalf("empty key = %q %v", key, err)
+	}
+
+	t.Setenv("BOOTSTRAP_API_KEY", "short")
+	if _, err := BootstrapAPIKey(); err == nil {
+		t.Fatal("expected a short key to fail")
+	}
+
+	t.Setenv("BOOTSTRAP_API_KEY", "co_local_dev_key_not_for_production")
+	key, err = BootstrapAPIKey()
+	if err != nil || key != "co_local_dev_key_not_for_production" {
+		t.Fatalf("key = %q %v", key, err)
+	}
+}

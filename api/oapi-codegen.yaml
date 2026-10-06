@@ -1,0 +1,5 @@
+# Models only. Handlers stay handwritten so the existing routes do not get rewritten.
+package: apigen
+output: internal/platform/apigen/types.gen.go
+generate:
+  models: true

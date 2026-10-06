@@ -23,6 +23,37 @@ paths:
                   status:
                     type: string
                     example: ok
+  /readyz:
+    get:
+      summary: Check that the database is reachable and migrations match this binary
+      responses:
+        "200":
+          description: Ready to serve
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    example: ok
+        "503":
+          description: Not ready
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /metrics:
+    get:
+      summary: Prometheus metrics
+      responses:
+        "200":
+          description: Prometheus text exposition
+          content:
+            text/plain:
+              schema:
+                type: string
   /v1/events:
     get:
       summary: List service events
@@ -159,3 +190,40 @@ components:
       properties:
         error:
           type: string
+    Problem:
+      type: object
+      description: RFC 9457 problem details. code matches the shared error catalog when the failure is a known one.
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        code:
+          type: string
+        retryable:
+          type: boolean
+        action:
+          type: string
+  securitySchemes:
+    workspaceKey:
+      type: http
+      scheme: bearer
+      description: >
+        Workspace API key. Health, readiness, metrics, and the event feed do
+        not use it. The browser EventSource cannot set this header.
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      schema:
+        type: string
+        maxLength: 128
+      description: >
+        On a mutating request, a retry with the same key and body returns the
+        stored response. The same key with a different body is rejected.

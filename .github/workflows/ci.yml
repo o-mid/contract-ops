@@ -43,6 +43,9 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.26.5"
+      - run: go run ./cmd/gencatalog -check
+      - run: go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen --config oapi-codegen.yaml ../openapi.yaml
+      - run: git diff --exit-code -- internal/platform/apigen/types.gen.go
       - run: go run ./cmd/migrate
       - run: go run ./cmd/migrate down
       - run: go run ./cmd/migrate down
