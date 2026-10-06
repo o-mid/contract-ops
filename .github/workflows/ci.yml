@@ -43,6 +43,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.26.5"
+      - run: go run ./cmd/gencatalog -check
       - run: go run ./cmd/migrate
       - run: go run ./cmd/migrate down
       - run: go run ./cmd/migrate down
