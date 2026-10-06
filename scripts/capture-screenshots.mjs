@@ -34,6 +34,13 @@ const shots = [
     path: "/console?q=zzznomatch",
     wait: 800,
     needsKey: false
+  },
+  {
+    name: "08-costs.png",
+    path: "/console?view=costs",
+    wait: 800,
+    needsKey: true,
+    waitFor: "Billing rows"
   }
 ];
 
@@ -59,7 +66,10 @@ for (const shot of shots) {
   await page.goto(`${baseUrl}${shot.path}`, { waitUntil: "domcontentloaded" });
   await page.waitForSelector("h1", { timeout: 30_000 });
   if (shot.waitFor) {
-    await page.getByRole("listitem").filter({ hasText: shot.waitFor }).waitFor({
+    const locator = shot.waitFor === "Billing rows"
+      ? page.getByRole("heading", { name: shot.waitFor })
+      : page.getByRole("listitem").filter({ hasText: shot.waitFor });
+    await locator.waitFor({
       timeout: 30_000
     });
     await page.waitForTimeout(400);

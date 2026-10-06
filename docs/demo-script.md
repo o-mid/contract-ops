@@ -2,19 +2,34 @@
 
 Use this when walking through the console. The API still owns credentials, sealing, and sync; this script focuses on what reviewers see in the browser.
 
-1. Start the stack with `make up`, then `npm run dev`.
-2. Open `http://localhost:3000` (landing) and `http://localhost:3000/console`. Show **Activity**: sidebar, live indicator, and the initial event table.
-3. Leave the page open. A new event appears about every five seconds until eight are stored. The “Last updated” line changes without a refresh.
-4. Tab through **Search** and **Status**. Focus rings stay visible on the dark theme.
-5. Search for `fireblocks`, then choose **Processed**. The URL updates (`?q=…&status=processed`); the stream reconnects with those query params.
-6. Search for a value that matches nothing. The empty state is explicit, not a blank table.
-7. Open **Settings**, paste the local key from `.env.example` (`BOOTSTRAP_API_KEY`), save.
-8. Open **Connections** (two demo vendors are already seeded after a fresh volume). Optionally create another `fakevendor`, **Verify**, then **Backfill 24h**. Mention jobs are API-only until a sync list endpoint exists.
-9. Open **Costs** after a backfill completes (worker must be running). Rows are normalized billing lines persisted on sync commit.
-9. Stop the API. The stream error offers **Try again**.
-10. Optional depth: `openapi.yaml`, `api/internal/httpapi/server.go` (stream filters), `docs/architecture.md` (sync leases).
-11. Run `npm run check` and `cd api && go test ./...`.
+## Before you present
 
-The generator stops at eight fixtures. It is not a vendor sync.
+```bash
+make up
+cd web && npm run dev
+```
 
-Screenshots: [`screenshots/`](./screenshots/) (see `npm run screenshots` in the root `package.json`).
+Open `http://localhost:3000` and `http://localhost:3000/console`. Paste `BOOTSTRAP_API_KEY` from [`.env.example`](../.env.example) into **Settings** so **Connections**, **Costs**, and backfill work.
+
+Optional: `npm run screenshots` (API + Next dev running) refreshes [`screenshots/`](./screenshots/).
+
+## Walkthrough
+
+1. **Landing** — hero, architecture section (`/#architecture`), **Open console**.
+2. **Activity** — live indicator, fixture table; generator adds events every ~5s up to eight total.
+3. **Filters** — search `fireblocks`, status **Processed**; URL carries `q` and `status`. Search `zzznomatch` for the empty state.
+4. **Settings** — workspace API key and API base URL (local: `http://localhost:8080`).
+5. **Connections** — two seeded `fakevendor` rows after a fresh volume; **Verify** and **Backfill 24h** (worker must run locally via `make up`).
+6. **Costs** — after backfill completes, normalized billing rows from `GET /v1/costs`.
+7. **Depth** (if asked) — `openapi.yaml`, sync engine notes in [`rehearse-sync-engine.md`](./rehearse-sync-engine.md), `docs/architecture.md`.
+
+## Verify before merge
+
+```bash
+npm run check
+cd web && npm run lint && npm run typecheck && npm run build
+cd api && go test ./...
+npm run test:e2e    # Postgres on :5432; API :18080 + web :13000 (see docs/e2e.md)
+```
+
+The demo generator stops at eight fixtures; it is not vendor sync.

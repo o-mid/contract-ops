@@ -25,7 +25,7 @@ Railway service roots and worker setup: [`docs/deploy-railway.md`](docs/deploy-r
 
 - **Activity** — live feed, search, status and connection filters, shareable URLs, load older pages via cursor.
 - **Connections** — list, create (`fakevendor` demo), verify, queue a 24-hour backfill (requires API key).
-- **Costs** — workspace billing rows from `GET /v1/costs` (requires API key).
+- **Costs** — workspace billing rows from `GET /v1/costs` (requires API key; needs worker + backfill for data).
 - **Settings** — API base URL and bearer key (stored in the browser only).
 
 Screenshots for filters, empty state, connections, and settings: [`docs/screenshots/`](docs/screenshots/). Regenerate with `make up`, `cd web && npm run dev`, then `npm run screenshots` (Playwright targets `http://localhost:3000/console` and seeds the local API key in browser storage).
@@ -69,6 +69,8 @@ make lint
 ```
 
 `make test` runs `go test ./...` and `npm run check`. Integration tests skip unless `TEST_DATABASE_URL` is set. They create and drop their own databases. They do not truncate the Compose demo database. CI sets that URL.
+
+Playwright E2E (`npm run test:e2e`) needs Postgres on localhost; see [`docs/e2e.md`](docs/e2e.md). CI runs the same suite in the `e2e` job.
 
 `make new-connector NAME=acme` copies `api/internal/connectors/scaffold` into a new package. The name has to be a lowercase identifier, and the directory must not already exist.
 
