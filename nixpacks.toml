@@ -1,0 +1,12 @@
+# Railway web service (repo root). API uses api/Dockerfile instead.
+[variables]
+NODE_VERSION = "20"
+
+[phases.install]
+cmds = ["cd web && npm ci"]
+
+[phases.build]
+cmds = ["cd web && npm run build"]
+
+[start]
+cmd = "cd web && npm run start"

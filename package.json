@@ -9,11 +9,14 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "postinstall": "npm ci --prefix web",
+    "build": "npm run build --prefix web",
+    "start": "npm run start --prefix web",
+    "build:vite": "tsc -b && vite build",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
-    "check": "npm run lint && npm run test && npm run build",
+    "check": "npm run lint && npm run test && npm run build:vite",
     "screenshots": "node scripts/capture-screenshots.mjs"
   },
   "dependencies": {
