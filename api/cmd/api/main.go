@@ -16,6 +16,8 @@ import (
 	"github.com/o-mid/contract-ops/api/internal/platform/config"
 	"github.com/o-mid/contract-ops/api/internal/platform/db"
 	applog "github.com/o-mid/contract-ops/api/internal/platform/log"
+	"github.com/o-mid/contract-ops/api/internal/platform/ready"
+	"github.com/o-mid/contract-ops/api/internal/platform/telemetry"
 )
 
 func main() {
@@ -59,11 +61,17 @@ func main() {
 		}
 	}
 
+	metrics := telemetry.New()
 	server := &http.Server{
 		Addr: ":" + cfg.Port,
 		Handler: httpapi.NewServer(store, httpapi.Options{
 			Logger:     logger,
 			CORSOrigin: cfg.CORSOrigin,
+			Ready: func(ctx context.Context) error {
+				return ready.Check(ctx, pool)
+			},
+			Metrics:    metrics.Handler(),
+			Instrument: metrics.Middleware,
 		}).Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 	}

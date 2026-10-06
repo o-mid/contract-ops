@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/o-mid/contract-ops/api/internal/events"
 	"github.com/o-mid/contract-ops/api/internal/platform/httpx"
+	"github.com/o-mid/contract-ops/api/internal/platform/problem"
 )
 
 const (
@@ -26,6 +28,12 @@ type Options struct {
 	CORSOrigin     string
 	RequestTimeout time.Duration
 	BodyLimitBytes int64
+	// Ready reports whether the process should receive traffic. Nil means not ready.
+	Ready func(ctx context.Context) error
+	// Metrics serves Prometheus text. Nil leaves /metrics unregistered.
+	Metrics http.Handler
+	// Instrument records RED metrics. It must pass Flush through for the event stream.
+	Instrument func(http.Handler) http.Handler
 }
 
 func (o Options) withDefaults() Options {
@@ -59,6 +67,9 @@ func (s Server) Handler() http.Handler {
 	router.Use(httpx.CORS(s.opts.CORSOrigin))
 	router.Use(httpx.AccessLog(s.opts.Logger))
 	router.Use(httpx.Recover(s.opts.Logger))
+	if s.opts.Instrument != nil {
+		router.Use(s.opts.Instrument)
+	}
 	router.Use(httpx.BodyLimit(s.opts.BodyLimitBytes))
 	router.Use(httpx.Timeout(s.opts.RequestTimeout, func(request *http.Request) bool {
 		// A request timeout would close the stream and the UI would treat
@@ -66,12 +77,28 @@ func (s Server) Handler() http.Handler {
 		return request.URL.Path == "/v1/events/stream"
 	}))
 	router.Get("/healthz", s.health)
+	router.Get("/readyz", s.ready)
+	if s.opts.Metrics != nil {
+		router.Handle("/metrics", s.opts.Metrics)
+	}
 	router.Get("/v1/events", s.listEvents)
 	router.Get("/v1/events/stream", s.streamEvents)
 	return router
 }
 
 func (s Server) health(writer http.ResponseWriter, _ *http.Request) {
+	writeJSON(writer, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+func (s Server) ready(writer http.ResponseWriter, request *http.Request) {
+	if s.opts.Ready == nil {
+		problem.Write(writer, http.StatusServiceUnavailable, "", "readiness check is not configured")
+		return
+	}
+	if err := s.opts.Ready(request.Context()); err != nil {
+		problem.Write(writer, http.StatusServiceUnavailable, "", err.Error())
+		return
+	}
 	writeJSON(writer, http.StatusOK, map[string]string{"status": "ok"})
 }
 

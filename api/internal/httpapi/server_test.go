@@ -20,6 +20,37 @@ func newTestServer(store *events.Store) Server {
 	})
 }
 
+func TestReadyzReportsUnavailableWithoutACheck(t *testing.T) {
+	server := newTestServer(events.NewStore(events.Fixtures()))
+	request := httptest.NewRequest(http.MethodGet, "/readyz", nil)
+	response := httptest.NewRecorder()
+
+	server.Handler().ServeHTTP(response, request)
+
+	if response.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d", response.Code)
+	}
+	if got := response.Header().Get("Content-Type"); got != "application/problem+json" {
+		t.Fatalf("content type = %q", got)
+	}
+}
+
+func TestReadyzOkWhenCheckPasses(t *testing.T) {
+	store := events.NewStore(events.Fixtures())
+	server := NewServer(store, Options{
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Ready:  func(context.Context) error { return nil },
+	})
+	request := httptest.NewRequest(http.MethodGet, "/readyz", nil)
+	response := httptest.NewRecorder()
+
+	server.Handler().ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, body %s", response.Code, response.Body.String())
+	}
+}
+
 func TestListEventsReturnsFilteredEvents(t *testing.T) {
 	server := newTestServer(events.NewStore(events.Fixtures()))
 	request := httptest.NewRequest(http.MethodGet, "/v1/events?status=failed", nil)
