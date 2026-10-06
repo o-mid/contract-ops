@@ -1,0 +1,11 @@
+{
+  "id": "fv_1",
+  "service": "completions",
+  "sku": "tokens",
+  "start": "2026-07-01T00:00:00Z",
+  "end": "2026-07-02T00:00:00Z",
+  "billed": "1.25",
+  "currency": "USD",
+  "quantity": "1000",
+  "unit": "tokens"
+}

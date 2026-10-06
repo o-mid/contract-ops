@@ -12,6 +12,8 @@ import (
 
 	"github.com/o-mid/contract-ops/api/internal/activity"
 	"github.com/o-mid/contract-ops/api/internal/connections"
+	"github.com/o-mid/contract-ops/api/internal/connectors"
+	"github.com/o-mid/contract-ops/api/internal/connectors/fakevendor"
 	"github.com/o-mid/contract-ops/api/internal/credentials"
 	"github.com/o-mid/contract-ops/api/internal/events"
 	"github.com/o-mid/contract-ops/api/internal/httpapi"
@@ -86,10 +88,15 @@ func main() {
 		logger.Error("invalid config", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
+	registry := connectors.NewRegistry(
+		fakevendor.New(),
+		connectors.Disabled{KindName: "openai", DisplayName: "OpenAI"},
+		connectors.Disabled{KindName: "anthropic", DisplayName: "Anthropic"},
+	)
 	connectionHandler := connections.NewHandler(connections.NewService(
 		connections.NewStore(pool),
 		credentials.NewSealer(keyProvider),
-		connections.StaticVerifier{},
+		registryVerifier{registry: registry},
 	))
 
 	metrics := telemetry.New()
@@ -131,4 +138,22 @@ func main() {
 		logger.Error("shutdown", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
+}
+
+type registryVerifier struct {
+	registry *connectors.Registry
+}
+
+func (v registryVerifier) Verify(ctx context.Context, kind, secret string) error {
+	connector, ok := v.registry.Get(kind)
+	if !ok {
+		return &connections.Failure{Status: http.StatusBadRequest, Detail: "unknown connector"}
+	}
+	if _, disabled := connector.(connectors.Disabled); disabled {
+		return &connections.Failure{Status: http.StatusBadRequest, Detail: "connector is not enabled"}
+	}
+	if err := connector.Verify(ctx, connectors.Credential{Secret: secret}); err != nil {
+		return &connections.Failure{Status: http.StatusUnauthorized, Code: "auth_invalid", Detail: "credential was rejected"}
+	}
+	return nil
 }
