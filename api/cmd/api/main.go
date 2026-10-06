@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/o-mid/contract-ops/api/internal/activity"
+	"github.com/o-mid/contract-ops/api/internal/connections"
+	"github.com/o-mid/contract-ops/api/internal/credentials"
 	"github.com/o-mid/contract-ops/api/internal/events"
 	"github.com/o-mid/contract-ops/api/internal/httpapi"
 	"github.com/o-mid/contract-ops/api/internal/platform/auth"
@@ -74,6 +76,22 @@ func main() {
 		}
 	}
 
+	masterKey, err := config.MasterKey()
+	if err != nil {
+		logger.Error("invalid config", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+	keyProvider, err := credentials.NewEnvKey(masterKey)
+	if err != nil {
+		logger.Error("invalid config", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+	connectionHandler := connections.NewHandler(connections.NewService(
+		connections.NewStore(pool),
+		credentials.NewSealer(keyProvider),
+		connections.StaticVerifier{},
+	))
+
 	metrics := telemetry.New()
 	server := &http.Server{
 		Addr: ":" + cfg.Port,
@@ -87,6 +105,7 @@ func main() {
 			Instrument:   metrics.Middleware,
 			Authenticate: auth.Middleware(keys.Resolve),
 			Idempotency:  idempotency.Middleware(idempotency.NewStore(pool)),
+			Register:     connectionHandler.Routes,
 		}).Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 	}

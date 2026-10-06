@@ -37,6 +37,7 @@ services:
       DEMO_GENERATOR: "true"
       DATABASE_URL: postgres://contract_ops:contract_ops@postgres:5432/contract_ops?sslmode=disable
       BOOTSTRAP_API_KEY: ${BOOTSTRAP_API_KEY:-co_local_dev_key_not_for_production}
+      MASTER_KEY: ${MASTER_KEY:-MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}
     ports:
       - "8080:8080"
     depends_on:

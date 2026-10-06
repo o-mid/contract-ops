@@ -38,6 +38,8 @@ type Options struct {
 	Authenticate func(http.Handler) http.Handler
 	// Idempotency replays stored responses for mutating requests. Nil disables it.
 	Idempotency func(http.Handler) http.Handler
+	// Register adds routes that are not part of the event feed.
+	Register func(chi.Router)
 }
 
 func (o Options) withDefaults() Options {
@@ -93,6 +95,9 @@ func (s Server) Handler() http.Handler {
 	}
 	router.Get("/v1/events", s.listEvents)
 	router.Get("/v1/events/stream", s.streamEvents)
+	if s.opts.Register != nil {
+		s.opts.Register(router)
+	}
 	return router
 }
 
