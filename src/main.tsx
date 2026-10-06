@@ -1,3 +1,4 @@
+// Mounts the console. The API base URL is read later, in src/api/events.ts.
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./app/App";

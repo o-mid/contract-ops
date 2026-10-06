@@ -1,3 +1,4 @@
+// Native search and status controls. describedBy points at the live status text.
 import type { ChangeEvent } from "react";
 import type { EventFilters, EventStatus } from "../../domain/event";
 

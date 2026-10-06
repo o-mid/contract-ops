@@ -1,3 +1,5 @@
+// Filter state lives here. The deferred copy is what opens the stream,
+// so a keystroke does not reconnect on every character.
 import { useDeferredValue, useId, useState } from "react";
 import type { EventFilters, EventStatus } from "../domain/event";
 import { EventTable } from "../features/events/EventTable";

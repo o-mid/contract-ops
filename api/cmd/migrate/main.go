@@ -14,6 +14,8 @@ import (
 	"github.com/o-mid/contract-ops/api/internal/platform/migrate"
 )
 
+// main applies the embedded goose migrations. The argument is up or down.
+// up is the default. CI runs both.
 func main() {
 	logger := applog.New(slog.LevelInfo)
 

@@ -24,6 +24,8 @@ import (
 	"github.com/o-mid/contract-ops/api/internal/sync"
 )
 
+// main migrates, then runs one scheduler and WORKER_CONCURRENCY runners.
+// The scheduler lock decides who enqueues. Runners only claim.
 func main() {
 	logger := applog.New(slog.LevelInfo)
 	slog.SetDefault(logger)

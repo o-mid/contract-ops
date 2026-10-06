@@ -114,6 +114,9 @@ func (s *Store) EnqueueScheduled(ctx context.Context, lookback time.Duration) (i
 	return n, rows.Err()
 }
 
+// Claim locks one due job with SKIP LOCKED, then takes a transaction advisory
+// lock on the connection. A second live lease on that connection is left for
+// its owner. A running row whose lease_until is already past can be taken.
 func (s *Store) Claim(ctx context.Context, lease time.Duration) (Job, bool, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
@@ -275,6 +278,8 @@ func (s *Store) CommitPage(ctx context.Context, job Job, batch Batch, watermark 
 	return tx.Commit(ctx)
 }
 
+// Quarantine records the batch and marks the job quarantined.
+// It does not update sync_cursors and it does not call Retry.
 func (s *Store) Quarantine(ctx context.Context, job Job, batch Batch) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
@@ -331,6 +336,8 @@ func (s *Store) Retry(ctx context.Context, job Job, code, detail string, after t
 	return tx.Commit(ctx)
 }
 
+// Fail maps code through Apply starting from healthy, then writes that status.
+// The update skips a paused connection, so pause still wins.
 func (s *Store) Fail(ctx context.Context, job Job, code, detail string) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {

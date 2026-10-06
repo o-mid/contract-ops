@@ -20,6 +20,8 @@ type entry struct {
 	Message   string `yaml:"message"`
 }
 
+// main reads openapi/errors.yaml and writes the Go and TypeScript catalogs.
+// -check exits 1 when either generated file would change.
 func main() {
 	check := flag.Bool("check", false, "exit 1 when generated files differ")
 	flag.Parse()

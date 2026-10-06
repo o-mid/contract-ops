@@ -1,3 +1,5 @@
+// Loading, error, empty, and the table are separate branches.
+// A live tick that already has rows does not pass through loading.
 import type { EventsState } from "../../domain/event";
 
 type EventTableProps = {

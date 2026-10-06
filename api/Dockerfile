@@ -15,4 +15,6 @@ COPY --from=build /out/migrate /migrate
 COPY --from=build /out/worker /worker
 EXPOSE 8080
 USER nonroot:nonroot
+# Entrypoint stays /api. Compose overrides it for migrate and the worker.
+# A platform start command is appended as arguments, so it cannot select /worker.
 ENTRYPOINT ["/api"]

@@ -3,8 +3,9 @@ info:
   title: Contract Ops API
   version: 0.1.0
   description: >
-    A deterministic event feed for the Contract Ops frontend. The process starts
-    with four fixtures and appends up to four more live demo events over SSE.
+    Connections, sealed vendor credentials, and sync jobs, plus the activity
+    feed the console reads. The feed starts with four fixtures and can append
+    up to four more live demo events over SSE.
 servers:
   - url: http://localhost:8080
 paths:

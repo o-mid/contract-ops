@@ -103,6 +103,8 @@ func (s *Service) Verify(ctx context.Context, workspaceID, id string) (Connectio
 	return s.finishVerify(ctx, workspaceID, id, kind, string(secret))
 }
 
+// Rotate checks the new secret before sealing it.
+// A rejected secret leaves the stored credential in place.
 func (s *Service) Rotate(ctx context.Context, workspaceID, id string, input RotateInput) (Connection, error) {
 	if input.Secret == "" || len(input.Secret) > 4096 {
 		return Connection{}, &Failure{Status: 400, Detail: "secret is required"}

@@ -57,6 +57,7 @@ type Feed interface {
 	Subscribe(ctx context.Context) (<-chan struct{}, func(), error)
 }
 
+// Store is the in-memory feed. Unit tests use it. The running API uses activity.Store.
 type Store struct {
 	mu     sync.RWMutex
 	events []Event

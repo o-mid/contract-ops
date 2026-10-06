@@ -1,3 +1,5 @@
+// One EventSource per filter change. EventSource cannot set Authorization,
+// so this hook only calls the public feed.
 import { useEffect, useState } from "react";
 import { eventsStreamUrl, parseEventPage } from "../api/events";
 import type { EventFilters, EventsState } from "../domain/event";

@@ -48,6 +48,9 @@ func (r *Runner) Run(ctx context.Context) error {
 	}
 }
 
+// Execute opens the active credential and fetches one window.
+// Schema drift quarantines the batch and leaves the cursor where it was.
+// Normalize runs so drift is visible. The cost rows it returns are not stored.
 func (r *Runner) Execute(ctx context.Context, job Job) error {
 	kind, status, err := r.Jobs.Connection(ctx, job.ConnectionID)
 	if err != nil {

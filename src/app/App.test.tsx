@@ -1,3 +1,5 @@
+// Replaces EventSource and checks the stream URL, a row, the empty state,
+// a bad payload, and retry.
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";

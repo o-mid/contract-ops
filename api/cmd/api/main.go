@@ -33,6 +33,8 @@ import (
 	"github.com/o-mid/contract-ops/api/internal/sync"
 )
 
+// main migrates before it serves. stopListen is deferred after pool.Close,
+// and defers run in reverse, so LISTEN finishes while the pool is still open.
 func main() {
 	cfg, err := config.Load()
 	if err != nil {

@@ -1,3 +1,5 @@
+// Stream URL and the runtime check for one event page.
+// Extra fields on the payload, including nextCursor, are ignored.
 import type { EventFilters, EventPage, EventStatus, ServiceEvent } from "../domain/event";
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";

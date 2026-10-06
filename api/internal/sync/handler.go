@@ -21,6 +21,8 @@ func NewHandler(jobs *Store, conns *connections.Store) Handler {
 	return Handler{Jobs: jobs, Connections: conns}
 }
 
+// Routes queues one UTC day per backfill chunk, at most 366 days.
+// The one-running-job index makes those chunks serial for a connection.
 func (h Handler) Routes(router chi.Router) {
 	router.Post("/v1/connections/{id}/backfill", h.backfill)
 	router.Post("/v1/sync/jobs/{id}/cancel", h.cancel)

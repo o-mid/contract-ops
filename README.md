@@ -1,78 +1,31 @@
 # Contract Ops
 
-Portfolio project that showcases how I design a typed web front end against a small Go back-end service with a clear REST (and streaming) contract.
+Contract Ops is an integrations control plane with an event console in front of it. The console shows a live activity feed. The API stores connections, seals vendor credentials, and queues sync jobs. A worker claims those jobs.
 
-It is intentionally narrow so the important decisions stay visible: TypeScript boundaries, accessible UI states, OpenAPI-documented filtering, deterministic fixtures, Server-Sent Events for live updates, tests, and CI.
+The console is React and TypeScript. The API, the worker, and migrations are Go. Postgres holds the data. The HTTP contract is OpenAPI 3.1 in [`openapi.yaml`](./openapi.yaml).
 
-## What this repository demonstrates
+## What is running
 
-This repo is for showcasing practical skills relevant to modern web engineering teams that work with **React**, **TypeScript**, **REST APIs**, and occasional **Go** services:
+`api` serves HTTP. It migrates on boot, then listens. `worker` claims sync jobs. Compose starts one. The Railway project runs the API and the console, not a separate worker. `migrate` is the same goose binary Compose and CI call directly. The image also contains it, but the container entrypoint is `/api`, so the API and the worker apply migrations themselves before they serve.
 
-| Skill area | Where it shows up here |
-|---|---|
-| React + TypeScript | Strict TS UI, feature/app/api layering, deferred filter updates, EventSource lifecycle |
-| CSS + accessibility | Native labelled controls, visible focus, live region status text, keyboard-operable filters, responsive table scroll |
-| REST API design | `GET /v1/events` with validated query params, typed `EventPage` responses, OpenAPI 3.1 contract |
-| Go service basics | Stdlib HTTP server, in-memory store, filtering, graceful shutdown, focused package tests |
-| Event-style integration | Live demo generator + `GET /v1/events/stream` (SSE) pushing filtered pages as the store changes |
-| Maintainability | Small packages, explicit loading/empty/error/retry states, runtime response validation, CI |
-| Reliability habits | Deterministic fixtures, abort/cleanup on stream reconnect, mutex-safe store, signal-based shutdown |
+The console only talks to the public event feed. Connection and sync routes are on the API. The browser does not call them yet.
 
-It is **not** a production platform. There is no authentication. The event feed is stored in Postgres and the list is cursor-paginated. The point is a reviewable slice of front-end / API / contract engineering.
+Live:
 
-## Screenshots
+- API: https://api-production-4b82.up.railway.app
+- Console: https://web-production-a614a.up.railway.app
 
-### Event list (live SSE feed)
+`/healthz` means the process is up. `/readyz` means Postgres answers and its goose version matches the migrations compiled into that binary.
 
-![Contract Ops event list](docs/screenshots/events-list.png)
+## Read next
 
-### Search filter
-
-![Filtered search for fireblocks](docs/screenshots/filtered-search.png)
-
-### Status filter
-
-![Processed status filter](docs/screenshots/status-filter.png)
-
-### Empty state
-
-![Empty state when nothing matches](docs/screenshots/empty-state.png)
-
-## Architecture
-
-```text
-src/
-  api/              Stream URL helpers and runtime response validation
-  domain/           Shared frontend types
-  features/         Event filter and table UI
-  app/              Page composition and EventSource lifecycle
-api/
-  cmd/api/          Process entry point and graceful shutdown
-  internal/events/  Model, fixtures, live generator, filtering, pub/sub
-  internal/httpapi/ HTTP routing, SSE, CORS, JSON responses
-openapi.yaml        Public API contract
-```
-
-```text
-UI filters change
-      |
-      v
-EventSource → GET /v1/events/stream?q&status
-      |
-      v
-Go validates status → filtered EventPage snapshot
-      |
-      +---- generator appends a fixture every 5s until 8 events
-      |
-      v
-SSE push → runtime validation → table + last-updated timestamp
-```
-
-The frontend owns interaction state. The API owns filtering and response shape. Fixtures start at four events; the process appends up to four more live demo events so reviewers can watch the console update without a refresh.
+- [Architecture](docs/architecture.md) — how a request, a credential, and a sync job move.
+- [Codebase](docs/codebase.md) — what each file is doing.
+- [Demo script](docs/demo-script.md) — the console walkthrough.
 
 ## Run locally
 
-Requirements: Node.js 18+, npm, Go 1.26+, and Docker.
+Node.js 18 or newer, npm, Go 1.26 or newer, and Docker.
 
 ```bash
 make up
@@ -80,44 +33,54 @@ npm install
 npm run dev
 ```
 
-`make up` builds the API, applies migrations, and starts it with Postgres 16. The API listens on port 8080. Postgres listens on port 5432. Open `http://localhost:5173` and leave the page open to watch the list grow from 4 to 8 events. `make down` stops the stack. The four starting events stay in Postgres, so a second `make up` does not replay the live demo unless you remove the volume with `docker compose down -v`.
+`make up` starts Postgres 16, applies migrations, starts the API on port 8080, and starts a worker. Open `http://localhost:5173` and leave it open. The feed begins with four fixtures. The demo generator appends one about every five seconds until eight events are stored. Those rows stay in the Postgres volume, so the next `make up` does not grow the list again. `docker compose down -v` drops the volume.
 
-To run the API on the host instead of in Docker, point it at a migrated database:
+`DEMO_GENERATOR` defaults to true. Set it to false when you want the fixtures and nothing further.
+
+To run the API on the host, point it at a database Compose has already migrated:
 
 ```bash
 cd api
-DATABASE_URL=postgres://contract_ops:contract_ops@localhost:5432/contract_ops?sslmode=disable go run ./cmd/migrate
 DATABASE_URL=postgres://contract_ops:contract_ops@localhost:5432/contract_ops?sslmode=disable go run ./cmd/api
 ```
+
+The worker is `go run ./cmd/worker`. `WORKER_CONCURRENCY` defaults to 2 and must be from 1 to 32. Both processes require `MASTER_KEY`. The value in [`.env.example`](./.env.example) is a local development key, the same kind of secret as the local database password.
 
 ## Verify
 
 ```bash
 make test
+make lint
 ```
 
-`make test` runs `go test ./...` in `api/` and `npm run check`. `make lint` runs golangci-lint on the API module.
+`make test` runs `go test ./...` and `npm run check`. Integration tests skip unless `TEST_DATABASE_URL` is set. They create and drop their own databases. They do not truncate the Compose demo database. CI sets that URL.
 
-## API
+`make new-connector NAME=acme` copies `api/internal/connectors/scaffold` into a new package. The name has to be a lowercase identifier, and the directory must not already exist.
 
-`GET /v1/events` and `GET /v1/events/stream` accept:
+## API, short version
 
-| Parameter | Meaning |
+These routes are public. The browser's `EventSource` cannot set `Authorization`, so the feed stays open.
+
+| Method and path | What it returns |
 |---|---|
-| `q` | Case-insensitive match against event ID, source, type, or correlation ID |
-| `status` | `processed`, `pending`, `failed`, or `all` |
+| `GET /healthz` | `{"status":"ok"}` |
+| `GET /readyz` | the same, or a problem response when the schema does not match |
+| `GET /metrics` | Prometheus text |
+| `GET /v1/events` | one activity page |
+| `GET /v1/events/stream` | the same page, pushed as SSE when the table changes |
 
-The stream responds with `text/event-stream` messages whose `data` field is an `EventPage` JSON object.
+`q` is a case-insensitive match on id, source, type, or correlation id. `status` is `processed`, `pending`, `failed`, or `all`. `limit` defaults to 50 and stops at 100. `cursor` is the opaque keyset from the previous page. `total` counts the whole filtered set, not the page.
 
-Full contract: [`openapi.yaml`](./openapi.yaml)
+Every other route expects `Authorization: Bearer`. On boot, `BOOTSTRAP_API_KEY` is hashed and stored for workspace `ws_local`. The secret is not stored. The local key is in `.env.example`.
 
-Walkthrough: [`docs/demo-script.md`](./docs/demo-script.md)  
-Design notes: [`docs/architecture.md`](./docs/architecture.md)
+`POST`, `PUT`, and `PATCH` accept an optional `Idempotency-Key` once a workspace is on the request. The same key and the same body replay the stored response. A different body, or a request still in progress, returns 409.
 
-## Scope and tradeoffs
+Connections: create, list, get, patch name or pause, verify, and rotate. Kinds are `fakevendor`, `openai`, and `anthropic`. A new connection starts at `needs_auth`. Verify moves a good secret to `healthy`. Rotate checks the new secret before it replaces the stored one. Responses carry a fingerprint, never the secret. OpenAI and Anthropic are registered and refuse work. `fakevendor` accepts any non-empty secret, or a JSON fault document.
 
-Omitted on purpose: auth, multi-tenant CORS, rate limiting, tracing, and a real event bus. The live generator still appends the demo fixtures, and those rows now live in Postgres.
+`POST /v1/connections/{id}/backfill` takes `start` and `end` and returns 202 with one job per UTC day, from 1 to 366 days. `POST /v1/sync/jobs/{id}/cancel` cancels a queued or running job in that workspace.
+
+Failures use `application/problem+json`. The code list is [`api/openapi/errors.yaml`](./api/openapi/errors.yaml).
 
 ## Licence
 
-MIT — see [`LICENSE`](./LICENSE).
+MIT. See [`LICENSE`](./LICENSE).

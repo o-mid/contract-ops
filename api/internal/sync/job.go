@@ -2,6 +2,7 @@ package sync
 
 import "time"
 
+// streamUsage is the cursor stream CommitPage and the scheduler share.
 const streamUsage = "usage"
 
 type Job struct {
