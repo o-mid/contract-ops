@@ -63,7 +63,7 @@ The demo generator appends the pending fixtures every 5 seconds and stops at `Ma
 
 `internal/events.Store` is the in-memory feed. Unit tests use it. The running API uses `activity.Store`, which implements the same `Feed` interface.
 
-The console opens one `EventSource` per filter change. `useDeferredValue` keeps typing from reconnecting on every key. The stream payload is checked at runtime: `total` has to be a finite non-negative number, `events` an array, and each status one of `processed`, `pending`, `failed`. Extra fields, including `nextCursor`, are ignored. The console renders the snapshot it was given. It does not follow the cursor. Loading is shown when the filters change, not on every SSE tick.
+The console opens one `EventSource` per filter change. `useDeferredValue` keeps typing from reconnecting on every key. The stream payload is checked at runtime: `total` has to be a finite non-negative number, `events` an array, and each status one of `processed`, `pending`, `failed`. `nextCursor` is kept for optional “load older” requests on `GET /v1/events`. Authenticated routes use a bearer key from browser storage; the feed stays public because `EventSource` cannot send `Authorization`. Loading is shown when the filters change, not on every SSE tick.
 
 ## Auth and idempotency
 

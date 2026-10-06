@@ -1,12 +1,9 @@
 // Stream URL and the runtime check for one event page.
-// Extra fields on the payload, including nextCursor, are ignored.
 import type { EventFilters, EventPage, EventStatus, ServiceEvent } from "../domain/event";
-
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
 
 const eventStatuses: ReadonlySet<string> = new Set(["processed", "pending", "failed"]);
 
-function buildQuery(filters: EventFilters): string {
+export function buildEventsQuery(filters: EventFilters): string {
   const parameters = new URLSearchParams();
 
   if (filters.query.trim()) {
@@ -17,14 +14,27 @@ function buildQuery(filters: EventFilters): string {
     parameters.set("status", filters.status);
   }
 
+  if (filters.connectionId.trim()) {
+    parameters.set("connection_id", filters.connectionId.trim());
+  }
+
   return parameters.toString();
 }
 
-export function eventsStreamUrl(filters: EventFilters): string {
-  const query = buildQuery(filters);
-  return query
-    ? `${apiBaseUrl}/v1/events/stream?${query}`
-    : `${apiBaseUrl}/v1/events/stream`;
+export function eventsStreamUrl(apiBaseUrl: string, filters: EventFilters): string {
+  const base = apiBaseUrl.replace(/\/$/, "");
+  const query = buildEventsQuery(filters);
+  return query ? `${base}/v1/events/stream?${query}` : `${base}/v1/events/stream`;
+}
+
+export function eventsPageUrl(apiBaseUrl: string, filters: EventFilters, cursor?: string): string {
+  const base = apiBaseUrl.replace(/\/$/, "");
+  const parameters = new URLSearchParams(buildEventsQuery(filters));
+  if (cursor) {
+    parameters.set("cursor", cursor);
+  }
+  const query = parameters.toString();
+  return query ? `${base}/v1/events?${query}` : `${base}/v1/events`;
 }
 
 export function parseEventPage(value: unknown): EventPage {
@@ -41,7 +51,11 @@ export function parseEventPage(value: unknown): EventPage {
   }
 
   const events = value.events.map((event, index) => parseServiceEvent(event, index));
-  return { events, total: value.total };
+  const page: EventPage = { events, total: value.total };
+  if (typeof value.nextCursor === "string" && value.nextCursor.trim()) {
+    page.nextCursor = value.nextCursor;
+  }
+  return page;
 }
 
 function parseServiceEvent(value: unknown, index: number): ServiceEvent {
@@ -64,7 +78,7 @@ function parseServiceEvent(value: unknown, index: number): ServiceEvent {
     throw new Error(`Invalid events response: event at index ${index} has invalid occurredAt`);
   }
 
-  return {
+  const event: ServiceEvent = {
     id,
     source,
     type,
@@ -72,6 +86,12 @@ function parseServiceEvent(value: unknown, index: number): ServiceEvent {
     occurredAt,
     correlationId
   };
+
+  if (typeof value.connectionId === "string" && value.connectionId.trim()) {
+    event.connectionId = value.connectionId;
+  }
+
+  return event;
 }
 
 function readString(record: Record<string, unknown>, key: string, index: number): string {
@@ -87,11 +107,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export async function getEvents(
+  apiBaseUrl: string,
   filters: EventFilters,
+  cursor?: string,
   signal?: AbortSignal
 ): Promise<EventPage> {
-  const query = buildQuery(filters);
-  const url = query ? `${apiBaseUrl}/v1/events?${query}` : `${apiBaseUrl}/v1/events`;
+  const url = eventsPageUrl(apiBaseUrl, filters, cursor);
 
   const response = await fetch(url, {
     headers: { Accept: "application/json" },

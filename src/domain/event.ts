@@ -9,19 +9,22 @@ export type ServiceEvent = {
   status: EventStatus;
   occurredAt: string;
   correlationId: string;
+  connectionId?: string;
 };
 
 export type EventPage = {
   events: ServiceEvent[];
   total: number;
+  nextCursor?: string;
 };
 
 export type EventFilters = {
   query: string;
   status: EventStatus | "all";
+  connectionId: string;
 };
 
 export type EventsState =
   | { kind: "loading" }
-  | { kind: "ready"; page: EventPage; lastUpdated: Date }
+  | { kind: "ready"; page: EventPage; lastUpdated: Date; source?: "stream" }
   | { kind: "error"; message: string };

@@ -377,6 +377,9 @@ components:
         correlationId:
           type: string
           example: crl_onramp_62de
+        connectionId:
+          type: string
+          description: Present when the event is tied to a vendor connection.
     EventPage:
       type: object
       required: [events, total]

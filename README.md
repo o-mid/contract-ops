@@ -8,12 +8,24 @@ The console is React and TypeScript. The API, the worker, and migrations are Go.
 
 `api` serves HTTP. It migrates on boot, then listens. `worker` claims sync jobs. Compose starts one. The Railway project runs the API and the console, not a separate worker. `migrate` is the same goose binary Compose and CI call directly. The image also contains it, but the container entrypoint is `/api`, so the API and the worker apply migrations themselves before they serve.
 
-The console only talks to the public event feed. Connection and sync routes are on the API. The browser does not call them yet.
+The console reads the **public** activity feed over SSE. With a workspace API key (Settings), it also calls connection and sync routes over ordinary `fetch` requests.
 
-Live:
+### Live
 
-- API: https://api-production-4b82.up.railway.app
-- Console: https://web-production-a614a.up.railway.app
+| Service | URL |
+|---------|-----|
+| API | https://api-production-4b82.up.railway.app |
+| Console | https://web-production-a614a.up.railway.app |
+
+### Console (at a glance)
+
+![Activity feed](docs/screenshots/01-activity-feed.png)
+
+- **Activity** — live feed, search, status and connection filters, shareable URLs, load older pages via cursor.
+- **Connections** — list, create (`fakevendor` demo), verify, queue a 24-hour backfill (requires API key).
+- **Settings** — API base URL and bearer key (stored in the browser only).
+
+Screenshots for filters, empty state, connections, and settings: [`docs/screenshots/`](docs/screenshots/). Regenerate with `make up`, `npm run dev`, then `npm run screenshots`.
 
 `/healthz` means the process is up. `/readyz` means Postgres answers and its goose version matches the migrations compiled into that binary.
 
@@ -22,6 +34,7 @@ Live:
 - [Architecture](docs/architecture.md) — how a request, a credential, and a sync job move.
 - [Codebase](docs/codebase.md) — what each file is doing.
 - [Demo script](docs/demo-script.md) — the console walkthrough.
+- [Product improvements](docs/product-improvements.md) — roadmap and research notes.
 
 ## Run locally
 

@@ -20,39 +20,53 @@ This is a map of the tree as it is, one file at a time. Generated files say wher
 
 `.github/workflows/ci.yml` has two jobs. `web` is Node 20, `npm ci`, `npm run check`. `api` is Postgres 16, then `gencatalog -check`, an `oapi-codegen` regenerate with `git diff --exit-code`, goose `up`, `down`, `down`, `up`, `go test`, and golangci-lint. `DATABASE_URL` and `TEST_DATABASE_URL` both point at the CI database.
 
-`package.json` holds the console scripts. `npm run check` is eslint, then vitest, then `tsc -b` and the Vite build. Runtime dependencies are React 18.3 and React DOM. Node 18 is the floor this repo declares. CI uses 20.
+`package.json` holds the console scripts. `npm run check` is eslint, then vitest, then `tsc -b` and the Vite build. `npm run screenshots` drives Playwright against a running dev server. Runtime dependencies include React 18.3, TanStack Query, Lucide icons, and Tailwind (via PostCSS). Node 18 is the floor this repo declares. CI uses 20.
+
+`tailwind.config.js` and `postcss.config.js` configure the console stylesheet. `scripts/capture-screenshots.mjs` writes PNGs under `docs/screenshots/`.
 
 `vite.config.ts` is the Vite and Vitest config: the React plugin, jsdom, and `src/test/setup.ts`.
 
 `index.html` is the shell Vite serves. The console mounts on `#root`.
 
-`src/styles.css` is the console layout: the page, the table, focus, and the narrow-viewport scroll.
+`src/styles.css` pulls in Tailwind layers and a few global resets.
 
 ## Console
 
-`src/main.tsx` mounts `App` in `StrictMode`.
+`src/main.tsx` mounts `App` inside `QueryClientProvider` and `SettingsProvider`.
 
 `src/vite-env.d.ts` types `import.meta.env`, including `VITE_API_BASE_URL`.
 
 `src/test/setup.ts` loads the jest-dom matchers for Vitest.
 
-`src/domain/event.ts` is the feed's TypeScript shape: a status of `processed`, `pending`, or `failed`, one event, a page of events plus `total`, the filter state, and the loading / ready / error union. It does not mention `nextCursor`. The console does not page.
+`src/lib/cn.ts` merges Tailwind class names. `src/lib/format.ts` formats UTC timestamps.
 
-`src/domain/errorCatalog.gen.ts` is generated from `api/openapi/errors.yaml`. Nothing in the console imports it yet. Edit the YAML, then run `gencatalog`.
+`src/domain/event.ts` is the feed shape, filters (including optional `connectionId`), and loading / ready / error state. `nextCursor` is used for “load older” via `GET /v1/events`.
 
-`src/api/events.ts` builds the stream URL from `VITE_API_BASE_URL`, defaulting to `http://localhost:8080`. `parseEventPage` checks the fields the table renders and ignores anything else on the object.
+`src/domain/connection.ts` types connections and sync jobs returned by the API.
 
-`src/app/App.tsx` holds the filter state, defers it, and lays out the header, toolbar, and table. The status text is a live region. Its id is passed into the toolbar as the control description.
+`src/domain/errorCatalog.gen.ts` is generated from `api/openapi/errors.yaml`. `src/api/client.ts` maps problem `code` values through the catalog for user-facing errors.
 
-`src/app/useEvents.ts` opens an `EventSource` for the deferred filters and closes it on cleanup or on a bad payload. `onerror` becomes the error state. `retry` bumps a token so the effect runs again. The hook cannot send a bearer token. That is a property of `EventSource`, which is why those two routes are public.
+`src/api/events.ts` builds stream and page URLs from the configured API base. `parseEventPage` validates payloads at runtime.
 
-`src/app/App.test.tsx` replaces `EventSource` and checks the stream URL, a rendered row, the empty state, a bad payload, and retry. Five tests.
+`src/api/connections.ts` lists, creates, verifies, and backfills connections over authenticated `fetch`.
 
-`src/features/events/EventToolbar.tsx` is the search box and the status select. Both are native controls with visible labels.
+`src/app/settings.tsx` and `src/app/settingsStorage.ts` persist API base URL and bearer key in `localStorage`. `src/app/useSettings.ts` reads them.
 
-`src/features/events/EventTable.tsx` renders loading, the error with a retry button, the empty state, or the table. Timestamps are `en-GB`, UTC. The table scrolls sideways when the viewport is narrow.
+`src/app/useUrlFilters.ts` syncs view and feed filters to the query string.
 
-`docs/screenshots/` is the console at those states: the list, a search, a status filter, and an empty result. `docs/demo-script.md` is the spoken walkthrough that uses them.
+`src/app/App.tsx` wires navigation, deferred filters, and a single `useEvents` instance for the shell live indicator.
+
+`src/app/useEvents.ts` owns the `EventSource` lifecycle, optional cursor pagination, and retry.
+
+`src/app/App.test.tsx` mocks `EventSource` for the activity view. Five tests.
+
+`src/components/layout/AppShell.tsx` is the sidebar shell. `src/components/ui/` holds buttons and badges.
+
+`src/pages/EventsPage.tsx`, `ConnectionsPage.tsx`, and `SettingsPage.tsx` are the three main views.
+
+`src/features/events/` contains the toolbar, table, and status badges.
+
+`docs/screenshots/` holds PNGs of the console states. `docs/product-improvements.md` records roadmap notes. `docs/demo-script.md` is the spoken walkthrough.
 
 ## API process
 

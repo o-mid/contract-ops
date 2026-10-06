@@ -1,8 +1,18 @@
-// Mounts the console. The API base URL is read later, in src/api/events.ts.
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./app/App";
+import { SettingsProvider } from "./app/settings";
 import "./styles.css";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false
+    }
+  }
+});
 
 const root = document.getElementById("root");
 
@@ -12,6 +22,10 @@ if (!root) {
 
 createRoot(root).render(
   <StrictMode>
-    <App />
+    <QueryClientProvider client={queryClient}>
+      <SettingsProvider>
+        <App />
+      </SettingsProvider>
+    </QueryClientProvider>
   </StrictMode>
 );

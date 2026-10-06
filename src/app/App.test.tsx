@@ -1,8 +1,10 @@
 // Replaces EventSource and checks the stream URL, a row, the empty state,
 // a bad payload, and retry.
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
+import { SettingsProvider } from "./settings";
 
 const eventPage = {
   events: [
@@ -38,9 +40,21 @@ class MockEventSource {
   close() {}
 }
 
+function renderApp() {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={client}>
+      <SettingsProvider>
+        <App />
+      </SettingsProvider>
+    </QueryClientProvider>
+  );
+}
+
 beforeEach(() => {
   MockEventSource.instances = [];
   vi.stubGlobal("EventSource", MockEventSource);
+  window.history.replaceState(null, "", "/");
 });
 
 afterEach(() => {
@@ -49,20 +63,19 @@ afterEach(() => {
 
 describe("App", () => {
   it("renders a labelled search field and stream results", async () => {
-    render(<App />);
+    renderApp();
 
-    expect(screen.getByRole("searchbox", { name: "Find an event" })).toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: "Processing status" })).toBeInTheDocument();
+    expect(screen.getByRole("searchbox", { name: "Search" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Status" })).toBeInTheDocument();
     expect(await screen.findByText("purchase.failed")).toBeInTheDocument();
-    expect(screen.getByText("crl_onramp_62de")).toBeInTheDocument();
     expect(screen.getByText(/Last updated/)).toBeInTheDocument();
   });
 
   it("reconnects the stream with the selected status filter", async () => {
-    render(<App />);
+    renderApp();
     await screen.findByText("purchase.failed");
 
-    fireEvent.change(screen.getByRole("combobox", { name: "Processing status" }), {
+    fireEvent.change(screen.getByRole("combobox", { name: "Status" }), {
       target: { value: "failed" }
     });
 
@@ -88,7 +101,7 @@ describe("App", () => {
 
     vi.stubGlobal("EventSource", ErrorOnlySource);
 
-    render(<App />);
+    renderApp();
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Unable to connect to the events stream"
@@ -116,10 +129,10 @@ describe("App", () => {
 
     vi.stubGlobal("EventSource", EmptySource);
 
-    render(<App />);
+    renderApp();
 
     expect(await screen.findByRole("heading", { name: "No matching events" })).toBeInTheDocument();
-    expect(screen.getByText("0 events found")).toBeInTheDocument();
+    expect(screen.getByText("0 events match filters")).toBeInTheDocument();
   });
 
   it("surfaces an error when the stream payload is invalid", async () => {
@@ -140,7 +153,7 @@ describe("App", () => {
 
     vi.stubGlobal("EventSource", InvalidSource);
 
-    render(<App />);
+    renderApp();
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Invalid events response: events must be an array"
