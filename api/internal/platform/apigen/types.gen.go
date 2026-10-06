@@ -97,6 +97,57 @@ func (e EventStatus) Valid() bool {
 	}
 }
 
+// Defines values for SyncJobKind.
+const (
+	Backfill  SyncJobKind = "backfill"
+	Reconnect SyncJobKind = "reconnect"
+	Scheduled SyncJobKind = "scheduled"
+)
+
+// Valid indicates whether the value is a known member of the SyncJobKind enum.
+func (e SyncJobKind) Valid() bool {
+	switch e {
+	case Backfill:
+		return true
+	case Reconnect:
+		return true
+	case Scheduled:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SyncJobStatus.
+const (
+	SyncJobStatusCancelled   SyncJobStatus = "cancelled"
+	SyncJobStatusFailed      SyncJobStatus = "failed"
+	SyncJobStatusQuarantined SyncJobStatus = "quarantined"
+	SyncJobStatusQueued      SyncJobStatus = "queued"
+	SyncJobStatusRunning     SyncJobStatus = "running"
+	SyncJobStatusSucceeded   SyncJobStatus = "succeeded"
+)
+
+// Valid indicates whether the value is a known member of the SyncJobStatus enum.
+func (e SyncJobStatus) Valid() bool {
+	switch e {
+	case SyncJobStatusCancelled:
+		return true
+	case SyncJobStatusFailed:
+		return true
+	case SyncJobStatusQuarantined:
+		return true
+	case SyncJobStatusQueued:
+		return true
+	case SyncJobStatusRunning:
+		return true
+	case SyncJobStatusSucceeded:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for GetV1EventsParamsStatus.
 const (
 	GetV1EventsParamsStatusAll       GetV1EventsParamsStatus = "all"
@@ -143,6 +194,12 @@ func (e GetV1EventsStreamParamsStatus) Valid() bool {
 	default:
 		return false
 	}
+}
+
+// BackfillRequest defines model for BackfillRequest.
+type BackfillRequest struct {
+	End   time.Time `json:"end"`
+	Start time.Time `json:"start"`
 }
 
 // Connection defines model for Connection.
@@ -236,6 +293,27 @@ type Problem struct {
 	Type      string  `json:"type"`
 }
 
+// SyncJob defines model for SyncJob.
+type SyncJob struct {
+	Attempt      *int          `json:"attempt,omitempty"`
+	ConnectionId string        `json:"connectionId"`
+	ErrorCode    *string       `json:"errorCode,omitempty"`
+	ErrorDetail  *string       `json:"errorDetail,omitempty"`
+	Id           string        `json:"id"`
+	Kind         SyncJobKind   `json:"kind"`
+	MaxAttempts  *int          `json:"maxAttempts,omitempty"`
+	Status       SyncJobStatus `json:"status"`
+	WindowEnd    time.Time     `json:"windowEnd"`
+	WindowStart  time.Time     `json:"windowStart"`
+	WorkspaceId  *string       `json:"workspaceId,omitempty"`
+}
+
+// SyncJobKind defines model for SyncJob.Kind.
+type SyncJobKind string
+
+// SyncJobStatus defines model for SyncJob.Status.
+type SyncJobStatus string
+
 // IdempotencyKey defines model for IdempotencyKey.
 type IdempotencyKey = string
 
@@ -247,6 +325,12 @@ type PostV1ConnectionsParams struct {
 
 // PatchV1ConnectionsIdParams defines parameters for PatchV1ConnectionsId.
 type PatchV1ConnectionsIdParams struct {
+	// IdempotencyKey On a mutating request, a retry with the same key and body returns the stored response. The same key with a different body is rejected.
+	IdempotencyKey *IdempotencyKey `json:"Idempotency-Key,omitempty"`
+}
+
+// PostV1ConnectionsIdBackfillParams defines parameters for PostV1ConnectionsIdBackfill.
+type PostV1ConnectionsIdBackfillParams struct {
 	// IdempotencyKey On a mutating request, a retry with the same key and body returns the stored response. The same key with a different body is rejected.
 	IdempotencyKey *IdempotencyKey `json:"Idempotency-Key,omitempty"`
 }
@@ -300,6 +384,9 @@ type PostV1ConnectionsJSONRequestBody = ConnectionCreate
 
 // PatchV1ConnectionsIdJSONRequestBody defines body for PatchV1ConnectionsId for application/json ContentType.
 type PatchV1ConnectionsIdJSONRequestBody = ConnectionPatch
+
+// PostV1ConnectionsIdBackfillJSONRequestBody defines body for PostV1ConnectionsIdBackfill for application/json ContentType.
+type PostV1ConnectionsIdBackfillJSONRequestBody = BackfillRequest
 
 // PostV1ConnectionsIdRotateJSONRequestBody defines body for PostV1ConnectionsIdRotate for application/json ContentType.
 type PostV1ConnectionsIdRotateJSONRequestBody = CredentialRotate

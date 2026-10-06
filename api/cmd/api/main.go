@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -9,6 +10,10 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	_ "github.com/jackc/pgx/v5/stdlib"
+
+	"github.com/go-chi/chi/v5"
 
 	"github.com/o-mid/contract-ops/api/internal/activity"
 	"github.com/o-mid/contract-ops/api/internal/connections"
@@ -22,8 +27,10 @@ import (
 	"github.com/o-mid/contract-ops/api/internal/platform/db"
 	"github.com/o-mid/contract-ops/api/internal/platform/idempotency"
 	applog "github.com/o-mid/contract-ops/api/internal/platform/log"
+	"github.com/o-mid/contract-ops/api/internal/platform/migrate"
 	"github.com/o-mid/contract-ops/api/internal/platform/ready"
 	"github.com/o-mid/contract-ops/api/internal/platform/telemetry"
+	"github.com/o-mid/contract-ops/api/internal/sync"
 )
 
 func main() {
@@ -44,6 +51,11 @@ func main() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+
+	if err := applyMigrations(ctx, databaseURL); err != nil {
+		logger.Error("migrate", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
 
 	pool, err := db.Open(ctx, databaseURL)
 	if err != nil {
@@ -93,11 +105,13 @@ func main() {
 		connectors.Disabled{KindName: "openai", DisplayName: "OpenAI"},
 		connectors.Disabled{KindName: "anthropic", DisplayName: "Anthropic"},
 	)
+	connectionStore := connections.NewStore(pool)
 	connectionHandler := connections.NewHandler(connections.NewService(
-		connections.NewStore(pool),
+		connectionStore,
 		credentials.NewSealer(keyProvider),
 		registryVerifier{registry: registry},
 	))
+	syncHandler := sync.NewHandler(sync.NewStore(pool), connectionStore)
 
 	metrics := telemetry.New()
 	server := &http.Server{
@@ -112,7 +126,10 @@ func main() {
 			Instrument:   metrics.Middleware,
 			Authenticate: auth.Middleware(keys.Resolve),
 			Idempotency:  idempotency.Middleware(idempotency.NewStore(pool)),
-			Register:     connectionHandler.Routes,
+			Register: func(router chi.Router) {
+				connectionHandler.Routes(router)
+				syncHandler.Routes(router)
+			},
 		}).Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
@@ -138,6 +155,21 @@ func main() {
 		logger.Error("shutdown", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
+}
+
+func applyMigrations(ctx context.Context, databaseURL string) error {
+	sqlDB, err := sql.Open("pgx", databaseURL)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = sqlDB.Close() }()
+
+	pingCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	if err := sqlDB.PingContext(pingCtx); err != nil {
+		return err
+	}
+	return migrate.Up(pingCtx, sqlDB)
 }
 
 type registryVerifier struct {

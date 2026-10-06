@@ -301,6 +301,57 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /v1/connections/{id}/backfill:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Queue a day-sized backfill
+      description: Chunks for one connection run one at a time.
+      security:
+        - workspaceKey: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BackfillRequest"
+      responses:
+        "202":
+          description: Jobs queued
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [jobs]
+                properties:
+                  jobs:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SyncJob"
+  /v1/sync/jobs/{id}/cancel:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Cancel a queued or running sync job
+      security:
+        - workspaceKey: []
+      responses:
+        "200":
+          description: Job cancelled, or already finished
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncJob"
 components:
   schemas:
     Event:
@@ -421,6 +472,46 @@ components:
           type: string
         paused:
           type: boolean
+    BackfillRequest:
+      type: object
+      required: [start, end]
+      properties:
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+    SyncJob:
+      type: object
+      required: [id, connectionId, kind, windowStart, windowEnd, status]
+      properties:
+        id:
+          type: string
+        connectionId:
+          type: string
+        workspaceId:
+          type: string
+        kind:
+          type: string
+          enum: [scheduled, backfill, reconnect]
+        windowStart:
+          type: string
+          format: date-time
+        windowEnd:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [queued, running, succeeded, failed, cancelled, quarantined]
+        attempt:
+          type: integer
+        maxAttempts:
+          type: integer
+        errorCode:
+          type: string
+        errorDetail:
+          type: string
     CredentialRotate:
       type: object
       required: [secret]
