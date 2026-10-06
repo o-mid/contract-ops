@@ -17,6 +17,8 @@ The console reads the **public** activity feed over SSE. With a workspace API ke
 | API | https://api-production-4b82.up.railway.app |
 | Console | https://web-production-a614a.up.railway.app |
 
+Railway service roots and worker setup: [`docs/deploy-railway.md`](docs/deploy-railway.md).
+
 ### Console (at a glance)
 
 ![Landing page](docs/screenshots/01-landing.png)
