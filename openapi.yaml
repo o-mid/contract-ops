@@ -335,6 +335,51 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/SyncJob"
+  /v1/costs:
+    get:
+      summary: List normalized billing rows for the workspace
+      security:
+        - workspaceKey: []
+      parameters:
+        - name: connection_id
+          in: query
+          schema:
+            type: string
+        - name: start
+          in: query
+          description: RFC3339 lower bound on charge period end.
+          schema:
+            type: string
+            format: date-time
+        - name: end
+          in: query
+          description: RFC3339 upper bound on charge period start.
+          schema:
+            type: string
+            format: date-time
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: Cost rows newest first
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CostPage"
+        "401":
+          description: Missing or unknown API key
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /v1/sync/jobs/{id}/cancel:
     parameters:
       - name: id
@@ -525,6 +570,74 @@ components:
         expiresAt:
           type: string
           format: date-time
+    CostRow:
+      type: object
+      required:
+        - id
+        - connectionId
+        - providerName
+        - serviceName
+        - chargePeriodStart
+        - chargePeriodEnd
+        - billedCost
+        - effectiveCost
+      properties:
+        id:
+          type: string
+        connectionId:
+          type: string
+        jobId:
+          type: string
+        batchId:
+          type: string
+        providerName:
+          type: string
+        billingAccountId:
+          type: string
+        serviceName:
+          type: string
+        serviceCategory:
+          type: string
+        resourceId:
+          type: string
+        skuId:
+          type: string
+        chargeCategory:
+          type: string
+        chargePeriodStart:
+          type: string
+          format: date-time
+        chargePeriodEnd:
+          type: string
+          format: date-time
+        billedCost:
+          type: string
+        effectiveCost:
+          type: string
+        billingCurrency:
+          type: string
+        usageQuantity:
+          type: string
+        usageUnit:
+          type: string
+        sourceRecordId:
+          type: string
+        ingestedAt:
+          type: string
+          format: date-time
+    CostPage:
+      type: object
+      required: [costs, total]
+      properties:
+        costs:
+          type: array
+          items:
+            $ref: "#/components/schemas/CostRow"
+        total:
+          type: integer
+          minimum: 0
+        nextCursor:
+          type: string
   securitySchemes:
     workspaceKey:
       type: http

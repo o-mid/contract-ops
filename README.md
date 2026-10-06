@@ -87,9 +87,13 @@ Every other route expects `Authorization: Bearer`. On boot, `BOOTSTRAP_API_KEY` 
 
 `POST`, `PUT`, and `PATCH` accept an optional `Idempotency-Key` once a workspace is on the request. The same key and the same body replay the stored response. A different body, or a request still in progress, returns 409.
 
-Connections: create, list, get, patch name or pause, verify, and rotate. Kinds are `fakevendor`, `openai`, and `anthropic`. A new connection starts at `needs_auth`. Verify moves a good secret to `healthy`. Rotate checks the new secret before it replaces the stored one. Responses carry a fingerprint, never the secret. OpenAI and Anthropic are registered and refuse work. `fakevendor` accepts any non-empty secret, or a JSON fault document.
+Connections: create, list, get, patch name or pause, verify, and rotate. Kinds are `fakevendor`, `openai`, and `anthropic`. A new connection starts at `needs_auth`. Verify moves a good secret to `healthy`. Rotate checks the new secret before it replaces the stored one. Responses carry a fingerprint, never the secret. `fakevendor` accepts any non-empty secret, or a JSON fault document. OpenAI and Anthropic verify API keys against the vendor and ingest organization cost payloads on sync.
+
+`GET /v1/costs` lists normalized billing rows for the workspace (optional `connection_id`, `start`, `end`, cursor pagination). Rows are written when a sync job commits a page.
 
 `POST /v1/connections/{id}/backfill` takes `start` and `end` and returns 202 with one job per UTC day, from 1 to 366 days. `POST /v1/sync/jobs/{id}/cancel` cancels a queued or running job in that workspace.
+
+Sync engine walkthrough for interviews: [`docs/rehearse-sync-engine.md`](docs/rehearse-sync-engine.md).
 
 Failures use `application/problem+json`. The code list is [`api/openapi/errors.yaml`](./api/openapi/errors.yaml).
 

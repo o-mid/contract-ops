@@ -25,7 +25,10 @@ func (StaticVerifier) Verify(_ context.Context, kind, secret string) error {
 		}
 		return nil
 	case "openai", "anthropic":
-		return &Failure{Status: 400, Detail: "connector is not enabled"}
+		if strings.TrimSpace(secret) == "" {
+			return &Failure{Status: 401, Code: "auth_invalid", Detail: "credential was rejected"}
+		}
+		return nil
 	default:
 		return &Failure{Status: 400, Detail: "unknown connector"}
 	}

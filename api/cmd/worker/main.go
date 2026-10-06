@@ -15,7 +15,9 @@ import (
 
 	"github.com/o-mid/contract-ops/api/internal/connections"
 	"github.com/o-mid/contract-ops/api/internal/connectors"
+	"github.com/o-mid/contract-ops/api/internal/connectors/anthropic"
 	"github.com/o-mid/contract-ops/api/internal/connectors/fakevendor"
+	"github.com/o-mid/contract-ops/api/internal/connectors/openai"
 	"github.com/o-mid/contract-ops/api/internal/credentials"
 	"github.com/o-mid/contract-ops/api/internal/platform/config"
 	"github.com/o-mid/contract-ops/api/internal/platform/db"
@@ -62,8 +64,8 @@ func main() {
 
 	registry := connectors.NewRegistry(
 		fakevendor.New(),
-		connectors.Disabled{KindName: "openai", DisplayName: "OpenAI"},
-		connectors.Disabled{KindName: "anthropic", DisplayName: "Anthropic"},
+		openai.New(),
+		anthropic.New(),
 	)
 	jobs := sync.NewStore(pool)
 	runner := &sync.Runner{

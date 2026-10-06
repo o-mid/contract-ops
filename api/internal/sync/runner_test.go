@@ -17,6 +17,7 @@ import (
 	"github.com/o-mid/contract-ops/api/internal/connections"
 	"github.com/o-mid/contract-ops/api/internal/connectors"
 	"github.com/o-mid/contract-ops/api/internal/connectors/fakevendor"
+	"github.com/o-mid/contract-ops/api/internal/costs"
 	"github.com/o-mid/contract-ops/api/internal/credentials"
 	"github.com/o-mid/contract-ops/api/internal/platform/auth"
 	"github.com/o-mid/contract-ops/api/internal/platform/db"
@@ -55,6 +56,39 @@ func TestThreeRunnersDoNotDuplicateAJob(t *testing.T) {
 	}
 	if _, ok, err := jobs.Watermark(ctx, connectionID); err != nil || !ok {
 		t.Fatalf("watermark ok=%v err=%v", ok, err)
+	}
+}
+
+func TestRunnerStoresCostRows(t *testing.T) {
+	pool := testPool(t)
+	ctx := context.Background()
+	connectionID := seedConnection(t, ctx, pool, "healthy")
+	jobs := NewStore(pool)
+	start := time.Date(2026, 7, 3, 0, 0, 0, 0, time.UTC)
+	job, err := jobs.Enqueue(ctx, Job{
+		ConnectionID: connectionID,
+		WorkspaceID:  auth.LocalWorkspaceID,
+		Kind:         "backfill",
+		WindowStart:  start,
+		WindowEnd:    start.Add(24 * time.Hour),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	claimed, ok, err := jobs.Claim(ctx, time.Second)
+	if err != nil || !ok || claimed.ID != job.ID {
+		t.Fatalf("claim = %+v %v %v", claimed, ok, err)
+	}
+	runner := testRunner(t, pool, &scriptConnector{})
+	if err := runner.Execute(ctx, claimed); err != nil {
+		t.Fatal(err)
+	}
+	n, err := costs.NewStore(pool).CountForConnection(ctx, connectionID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n < 1 {
+		t.Fatalf("cost rows = %d", n)
 	}
 }
 

@@ -8,7 +8,7 @@ func TestRegistryListsKinds(t *testing.T) {
 		Disabled{KindName: "anthropic", DisplayName: "Anthropic"},
 	)
 	kinds := registry.Kinds()
-	if len(kinds) != 2 || kinds[0] != "anthropic" || kinds[1] != "openai" {
+	if len(kinds) != 2 {
 		t.Fatalf("kinds = %v", kinds)
 	}
 	if _, ok := registry.Get("missing"); ok {

@@ -239,6 +239,37 @@ type ConnectionPatch struct {
 	Paused *bool   `json:"paused,omitempty"`
 }
 
+// CostPage defines model for CostPage.
+type CostPage struct {
+	Costs      []CostRow `json:"costs"`
+	NextCursor *string   `json:"nextCursor,omitempty"`
+	Total      int       `json:"total"`
+}
+
+// CostRow defines model for CostRow.
+type CostRow struct {
+	BatchId           *string    `json:"batchId,omitempty"`
+	BilledCost        string     `json:"billedCost"`
+	BillingAccountId  *string    `json:"billingAccountId,omitempty"`
+	BillingCurrency   *string    `json:"billingCurrency,omitempty"`
+	ChargeCategory    *string    `json:"chargeCategory,omitempty"`
+	ChargePeriodEnd   time.Time  `json:"chargePeriodEnd"`
+	ChargePeriodStart time.Time  `json:"chargePeriodStart"`
+	ConnectionId      string     `json:"connectionId"`
+	EffectiveCost     string     `json:"effectiveCost"`
+	Id                string     `json:"id"`
+	IngestedAt        *time.Time `json:"ingestedAt,omitempty"`
+	JobId             *string    `json:"jobId,omitempty"`
+	ProviderName      string     `json:"providerName"`
+	ResourceId        *string    `json:"resourceId,omitempty"`
+	ServiceCategory   *string    `json:"serviceCategory,omitempty"`
+	ServiceName       string     `json:"serviceName"`
+	SkuId             *string    `json:"skuId,omitempty"`
+	SourceRecordId    *string    `json:"sourceRecordId,omitempty"`
+	UsageQuantity     *string    `json:"usageQuantity,omitempty"`
+	UsageUnit         *string    `json:"usageUnit,omitempty"`
+}
+
 // Credential defines model for Credential.
 type Credential struct {
 	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
@@ -260,6 +291,8 @@ type Error struct {
 
 // Event defines model for Event.
 type Event struct {
+	// ConnectionId Present when the event is tied to a vendor connection.
+	ConnectionId  *string     `json:"connectionId,omitempty"`
 	CorrelationId string      `json:"correlationId"`
 	Id            string      `json:"id"`
 	OccurredAt    time.Time   `json:"occurredAt"`
@@ -345,6 +378,19 @@ type PostV1ConnectionsIdRotateParams struct {
 type PostV1ConnectionsIdVerifyParams struct {
 	// IdempotencyKey On a mutating request, a retry with the same key and body returns the stored response. The same key with a different body is rejected.
 	IdempotencyKey *IdempotencyKey `json:"Idempotency-Key,omitempty"`
+}
+
+// GetV1CostsParams defines parameters for GetV1Costs.
+type GetV1CostsParams struct {
+	ConnectionId *string `form:"connection_id,omitempty" json:"connection_id,omitempty"`
+
+	// Start RFC3339 lower bound on charge period end.
+	Start *time.Time `form:"start,omitempty" json:"start,omitempty"`
+
+	// End RFC3339 upper bound on charge period start.
+	End    *time.Time `form:"end,omitempty" json:"end,omitempty"`
+	Cursor *string    `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *int       `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
 // GetV1EventsParams defines parameters for GetV1Events.

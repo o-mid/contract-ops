@@ -114,7 +114,7 @@ The registry maps kind to connector. `Disabled` is a registered connector that r
 
 `make new-connector NAME=acme` copies the scaffold with `sed` and refuses to overwrite an existing directory.
 
-Normalized rows are `CostRow` values. The sync runner calls `Normalize` so it can see drift. It discards the rows. There is no `cost_rows` table yet.
+Normalized rows are `CostRow` values. The sync runner calls `Normalize` so it can see drift. On a successful commit, rows are inserted into `cost_rows` in the same transaction as `raw_batches`. `GET /v1/costs` lists them for the workspace. OpenAI and Anthropic connectors ingest organization cost payloads; `fakevendor` remains the demo path.
 
 ## Sync
 

@@ -50,7 +50,7 @@ func (r *Runner) Run(ctx context.Context) error {
 
 // Execute opens the active credential and fetches one window.
 // Schema drift quarantines the batch and leaves the cursor where it was.
-// Normalize runs so drift is visible. The cost rows it returns are not stored.
+// Successful pages persist normalized cost rows with the committed batch.
 func (r *Runner) Execute(ctx context.Context, job Job) error {
 	kind, status, err := r.Jobs.Connection(ctx, job.ConnectionID)
 	if err != nil {
@@ -88,8 +88,10 @@ func (r *Runner) Execute(ctx context.Context, job Job) error {
 		return err
 	}
 
+	var costRows []connectors.CostRow
 	for _, record := range page.Records {
-		if _, err := connector.Normalize(record); err != nil {
+		rows, err := connector.Normalize(record)
+		if err != nil {
 			var drift interface{ SchemaDrift() string }
 			if errors.As(err, &drift) {
 				return r.Jobs.Quarantine(ctx, job, Batch{
@@ -100,12 +102,13 @@ func (r *Runner) Execute(ctx context.Context, job Job) error {
 			}
 			return r.failFetch(ctx, job, err)
 		}
+		costRows = append(costRows, rows...)
 	}
 
 	return r.Jobs.CommitPage(ctx, job, Batch{
 		RecordCount: len(page.Records),
 		Hash:        hashPage(job, page),
-	}, job.WindowEnd)
+	}, job.WindowEnd, costRows)
 }
 
 func (r *Runner) failFetch(ctx context.Context, job Job, err error) error {

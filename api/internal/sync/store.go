@@ -12,6 +12,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/o-mid/contract-ops/api/internal/connections"
+	"github.com/o-mid/contract-ops/api/internal/connectors"
+	"github.com/o-mid/contract-ops/api/internal/costs"
 	"github.com/o-mid/contract-ops/api/internal/events"
 )
 
@@ -235,7 +237,7 @@ func (s *Store) Cancel(ctx context.Context, workspaceID, id string) (Job, error)
 	return s.Get(ctx, id)
 }
 
-func (s *Store) CommitPage(ctx context.Context, job Job, batch Batch, watermark time.Time) error {
+func (s *Store) CommitPage(ctx context.Context, job Job, batch Batch, watermark time.Time, costRows []connectors.CostRow) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -246,11 +248,23 @@ func (s *Store) CommitPage(ctx context.Context, job Job, batch Batch, watermark 
 	if err != nil {
 		return err
 	}
-	if _, err := tx.Exec(ctx, `
+	tag, err := tx.Exec(ctx, `
 		INSERT INTO raw_batches (id, job_id, connection_id, record_count, payload_hash, quarantined, drift_report)
 		VALUES ($1, $2, $3, $4, $5, false, NULL)
 		ON CONFLICT (connection_id, payload_hash) DO NOTHING`,
-		batchID, job.ID, job.ConnectionID, batch.RecordCount, batch.Hash); err != nil {
+		batchID, job.ID, job.ConnectionID, batch.RecordCount, batch.Hash)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		if err := tx.QueryRow(ctx, `
+			SELECT id FROM raw_batches WHERE connection_id = $1 AND payload_hash = $2`,
+			job.ConnectionID, batch.Hash).Scan(&batchID); err != nil {
+			return err
+		}
+	}
+	costStore := costs.NewStore(s.pool)
+	if err := costStore.InsertTx(ctx, tx, job.WorkspaceID, job.ConnectionID, job.ID, batchID, costRows); err != nil {
 		return err
 	}
 	if _, err := tx.Exec(ctx, `

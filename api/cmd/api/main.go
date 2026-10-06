@@ -18,7 +18,10 @@ import (
 	"github.com/o-mid/contract-ops/api/internal/activity"
 	"github.com/o-mid/contract-ops/api/internal/connections"
 	"github.com/o-mid/contract-ops/api/internal/connectors"
+	"github.com/o-mid/contract-ops/api/internal/connectors/anthropic"
 	"github.com/o-mid/contract-ops/api/internal/connectors/fakevendor"
+	"github.com/o-mid/contract-ops/api/internal/connectors/openai"
+	"github.com/o-mid/contract-ops/api/internal/costs"
 	"github.com/o-mid/contract-ops/api/internal/credentials"
 	"github.com/o-mid/contract-ops/api/internal/events"
 	"github.com/o-mid/contract-ops/api/internal/httpapi"
@@ -104,8 +107,8 @@ func main() {
 	}
 	registry := connectors.NewRegistry(
 		fakevendor.New(),
-		connectors.Disabled{KindName: "openai", DisplayName: "OpenAI"},
-		connectors.Disabled{KindName: "anthropic", DisplayName: "Anthropic"},
+		openai.New(),
+		anthropic.New(),
 	)
 	connectionStore := connections.NewStore(pool)
 	connectionService := connections.NewService(
@@ -121,6 +124,7 @@ func main() {
 		}
 	}
 	syncHandler := sync.NewHandler(sync.NewStore(pool), connectionStore)
+	costHandler := costs.NewHandler(costs.NewStore(pool))
 
 	metrics := telemetry.New()
 	server := &http.Server{
@@ -138,6 +142,7 @@ func main() {
 			Register: func(router chi.Router) {
 				connectionHandler.Routes(router)
 				syncHandler.Routes(router)
+				costHandler.Routes(router)
 			},
 		}).Handler(),
 		ReadHeaderTimeout: 5 * time.Second,

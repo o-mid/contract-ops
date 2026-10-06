@@ -33,6 +33,13 @@ Local: `make up`, then `npm run dev` → http://localhost:5173 (API on :8080).
 
 Reference patterns we aligned with (not copied verbatim): [Nango webapp](https://github.com/NangoHQ/nango) (Vite + table/query split), [Windmill](https://github.com/windmill-labs/windmill) (SSE constraints), [Hookdeck Outpost](https://github.com/hookdeck/outpost) (event destination vocabulary).
 
+## Shipped: billing core (P6–P7)
+
+- `cost_rows` table; runner persists normalized rows on successful commit (same transaction as `raw_batches`).
+- `GET /v1/costs` with workspace scoping, connection filter, and keyset pagination.
+- **OpenAI** and **Anthropic** connectors: verify via models API, fetch organization cost payloads, normalize to FOCUS-shaped rows.
+- Rehearsal notes: [`rehearse-sync-engine.md`](./rehearse-sync-engine.md).
+
 ## Recommended next (backend + console)
 
 | Priority | Item | Why |
