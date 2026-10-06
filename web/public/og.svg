@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" fill="none">
+  <rect width="1200" height="630" fill="#06080f"/>
+  <circle cx="200" cy="120" r="280" fill="#4f46e5" fill-opacity="0.18"/>
+  <circle cx="1000" cy="500" r="240" fill="#06b6d4" fill-opacity="0.12"/>
+  <text x="80" y="120" fill="#a5b4fc" font-family="system-ui,sans-serif" font-size="22" font-weight="700" letter-spacing="0.2em">CONTRACT OPS</text>
+  <text x="80" y="200" fill="#f8fafc" font-family="system-ui,sans-serif" font-size="52" font-weight="600">Integrations control plane</text>
+  <text x="80" y="270" fill="#94a3b8" font-family="system-ui,sans-serif" font-size="28">Live activity · sealed credentials · sync jobs</text>
+  <rect x="80" y="340" width="1040" height="200" rx="16" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <circle cx="140" cy="440" r="28" fill="#1e293b" stroke="#6366f1" stroke-width="2"/>
+  <circle cx="400" cy="400" r="28" fill="#1e293b" stroke="#22d3ee" stroke-width="2"/>
+  <circle cx="660" cy="440" r="28" fill="#1e293b" stroke="#6366f1" stroke-width="2"/>
+  <circle cx="920" cy="400" r="28" fill="#1e293b" stroke="#34d399" stroke-width="2"/>
+  <path d="M168 440 Q280 380 372 400" stroke="#818cf8" stroke-width="3" stroke-opacity="0.6" fill="none"/>
+  <path d="M428 400 Q540 380 632 440" stroke="#22d3ee" stroke-width="3" stroke-opacity="0.6" fill="none"/>
+  <path d="M688 440 Q800 380 892 400" stroke="#34d399" stroke-width="3" stroke-opacity="0.6" fill="none"/>
+</svg>

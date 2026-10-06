@@ -10,6 +10,7 @@ test-api:
 	cd api && go test ./...
 
 test-web:
+	cd web && npm ci && npm run lint && npm run typecheck && npm run build
 	npm run check
 
 lint: $(GOLANGCI_LINT)

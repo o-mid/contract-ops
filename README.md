@@ -2,7 +2,7 @@
 
 Contract Ops is an integrations control plane with an event console in front of it. The console shows a live activity feed. The API stores connections, seals vendor credentials, and queues sync jobs. A worker claims those jobs.
 
-The console is React and TypeScript. The API, the worker, and migrations are Go. Postgres holds the data. The HTTP contract is OpenAPI 3.1 in [`openapi.yaml`](./openapi.yaml).
+The **web app** is Next.js 15 and TypeScript (landing page, animated architecture, and `/console`). A legacy Vite bundle remains at the repo root for local tooling. The API, worker, and migrations are Go. Postgres holds the data. The HTTP contract is OpenAPI 3.1 in [`openapi.yaml`](./openapi.yaml).
 
 ## What is running
 
@@ -19,13 +19,13 @@ The console reads the **public** activity feed over SSE. With a workspace API ke
 
 ### Console (at a glance)
 
-![Activity feed](docs/screenshots/01-activity-feed.png)
+![Landing page](docs/screenshots/01-landing.png)
 
 - **Activity** — live feed, search, status and connection filters, shareable URLs, load older pages via cursor.
 - **Connections** — list, create (`fakevendor` demo), verify, queue a 24-hour backfill (requires API key).
 - **Settings** — API base URL and bearer key (stored in the browser only).
 
-Screenshots for filters, empty state, connections, and settings: [`docs/screenshots/`](docs/screenshots/). Regenerate with `make up`, `npm run dev`, then `npm run screenshots`.
+Screenshots for filters, empty state, connections, and settings: [`docs/screenshots/`](docs/screenshots/). Regenerate with `make up`, `cd web && npm run dev`, then `npm run screenshots` (Playwright targets `http://localhost:3000/console` and seeds the local API key in browser storage).
 
 `/healthz` means the process is up. `/readyz` means Postgres answers and its goose version matches the migrations compiled into that binary.
 
@@ -42,11 +42,10 @@ Node.js 18 or newer, npm, Go 1.26 or newer, and Docker.
 
 ```bash
 make up
-npm install
-npm run dev
+cd web && npm install && npm run dev
 ```
 
-`make up` starts Postgres 16, applies migrations, starts the API on port 8080, and starts a worker. Open `http://localhost:5173` and leave it open. The feed begins with four fixtures. The demo generator appends one about every five seconds until eight events are stored. Those rows stay in the Postgres volume, so the next `make up` does not grow the list again. `docker compose down -v` drops the volume.
+`make up` starts Postgres 16, applies migrations, starts the API on port 8080, and starts a worker. Open `http://localhost:3000` for the marketing site and `http://localhost:3000/console` for the control plane UI. (Legacy Vite dev server: `npm run dev` at repo root on port 5173.) The feed begins with four fixtures. On first boot the API also seeds two verified `fakevendor` connections for workspace `ws_local` when that workspace has none. The demo generator appends one about every five seconds until eight events are stored. Those rows stay in the Postgres volume, so the next `make up` does not grow the list again. `docker compose down -v` drops the volume.
 
 `DEMO_GENERATOR` defaults to true. Set it to false when you want the fixtures and nothing further.
 
